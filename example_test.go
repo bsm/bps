@@ -7,7 +7,7 @@ import (
 	"github.com/bsm/bps"
 )
 
-func ExamplePublisher() {
+func Example() {
 	ctx := context.Background()
 	pub := bps.NewInMemPublisher()
 	defer pub.Close()

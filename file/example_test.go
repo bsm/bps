@@ -12,7 +12,7 @@ import (
 	_ "github.com/bsm/bps/file"
 )
 
-func ExamplePublisher() {
+func Example() {
 	dir, err := ioutil.TempDir("", "bps-example")
 	if err != nil {
 		panic(err.Error())

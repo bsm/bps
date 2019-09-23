@@ -7,7 +7,7 @@ import (
 	_ "github.com/bsm/bps/google"
 )
 
-func ExamplePublisher() {
+func Example() {
 	ctx := context.TODO()
 	pub, err := bps.NewPublisher(ctx, "google://my-project-id/")
 	if err != nil {
