@@ -1,0 +1,18 @@
+language: go
+go:
+  - 1.12.x
+  - 1.13.x
+env:
+  - GO111MODULE=on
+services:
+  - docker
+install:
+  - docker --version
+  - docker-compose --version
+before_script:
+  - docker-compose -f testdata/docker-compose.yml up -d
+script:
+  - make vet test-verbose
+cache:
+  directories:
+    - $GOPATH/pkg/mod
