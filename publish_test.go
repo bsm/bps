@@ -41,20 +41,30 @@ var _ = Describe("RegisterPublisher", func() {
 
 var _ = Describe("InMemPublisher", func() {
 	var subject *bps.InMemPublisher
-	var shared = lint.PublisherInput{
-		Messages: func(topic string) ([]*bps.Message, error) {
-			return subject.Topic(topic).(*bps.InMemTopic).Messages(), nil
-		},
-	}
 
 	BeforeEach(func() {
 		subject = bps.NewInMemPublisher()
-		shared.Subject = subject
 	})
 
 	AfterEach(func() {
 		Expect(subject.Close()).To(Succeed())
 	})
 
-	lint.Publisher(&shared)
+	Context("lint", func() {
+		var shared lint.PublisherInput
+
+		readMessages := func(topic string, _ int) ([]*bps.Message, error) {
+			return subject.Topic(topic).(*bps.InMemTopic).Messages(), nil
+		}
+
+		BeforeEach(func() {
+			subject = bps.NewInMemPublisher()
+			shared = lint.PublisherInput{
+				Subject:  subject,
+				Messages: readMessages,
+			}
+		})
+
+		lint.Publisher(&shared)
+	})
 })

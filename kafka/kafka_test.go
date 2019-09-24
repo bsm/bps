@@ -20,13 +20,11 @@ var _ = Describe("Publisher", func() {
 	var subject *kafka.Publisher
 	var _ bps.Publisher = subject
 	var ctx = context.Background()
-	var shared = lint.PublisherInput{Messages: readMessages}
 
 	BeforeEach(func() {
 		pub, err := bps.NewPublisher(ctx, "kafka://"+strings.Join(brokerAddrs, ",")+"?flush.messages=1&flush.frequency=1ms")
 		Expect(err).NotTo(HaveOccurred())
 		subject = pub.(*kafka.Publisher)
-		shared.Subject = subject
 	})
 
 	AfterEach(func() {
@@ -37,20 +35,29 @@ var _ = Describe("Publisher", func() {
 		Expect(subject).NotTo(BeNil())
 	})
 
-	lint.Publisher(&shared)
+	Context("lint", func() {
+		var shared lint.PublisherInput
+
+		BeforeEach(func() {
+			shared = lint.PublisherInput{
+				Subject:  subject,
+				Messages: readMessages,
+			}
+		})
+
+		lint.Publisher(&shared)
+	})
 })
 
 var _ = Describe("SyncPublisher", func() {
 	var subject *kafka.SyncPublisher
 	var _ bps.Publisher = subject
 	var ctx = context.Background()
-	var shared = lint.PublisherInput{Messages: readMessages}
 
 	BeforeEach(func() {
 		pub, err := bps.NewPublisher(ctx, "kafka+sync://"+strings.Join(brokerAddrs, ","))
 		Expect(err).NotTo(HaveOccurred())
 		subject = pub.(*kafka.SyncPublisher)
-		shared.Subject = subject
 	})
 
 	AfterEach(func() {
@@ -61,7 +68,18 @@ var _ = Describe("SyncPublisher", func() {
 		Expect(subject).NotTo(BeNil())
 	})
 
-	lint.Publisher(&shared)
+	Context("lint", func() {
+		var shared lint.PublisherInput
+
+		BeforeEach(func() {
+			shared = lint.PublisherInput{
+				Subject:  subject,
+				Messages: readMessages,
+			}
+		})
+
+		lint.Publisher(&shared)
+	})
 })
 
 // ------------------------------------------------------------------------
@@ -84,7 +102,7 @@ func sandboxCheck() error {
 	return pub.Close()
 }
 
-func readMessages(topic string) ([]*bps.Message, error) {
+func readMessages(topic string, _ int) ([]*bps.Message, error) {
 	csmr, err := sarama.NewConsumer(brokerAddrs, nil)
 	if err != nil {
 		return nil, err
