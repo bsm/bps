@@ -19,8 +19,28 @@ var _ = Describe("Publisher", func() {
 	var subject bps.Publisher
 	var ctx = context.Background()
 	var dir string
-	var shared = lint.PublisherInput{
-		Messages: func(topic string) ([]*bps.Message, error) {
+
+	BeforeEach(func() {
+		var err error
+		dir, err = ioutil.TempDir("", "bps-file-test")
+
+		subject, err = bps.NewPublisher(ctx, "file://"+dir)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		Expect(subject.Close()).To(Succeed())
+		Expect(os.RemoveAll(dir)).To(Succeed())
+	})
+
+	It("should init from URL", func() {
+		Expect(subject).NotTo(BeNil())
+	})
+
+	Context("lint", func() {
+		var shared lint.PublisherInput
+
+		readMessages := func(topic string, _ int) ([]*bps.Message, error) {
 			f, err := os.Open(filepath.Join(dir, topic))
 			if err != nil {
 				return nil, err
@@ -36,29 +56,17 @@ var _ = Describe("Publisher", func() {
 				res = append(res, msg)
 			}
 			return res, nil
-		},
-	}
+		}
 
-	BeforeEach(func() {
-		var err error
-		dir, err = ioutil.TempDir("", "bps-file-test")
+		BeforeEach(func() {
+			shared = lint.PublisherInput{
+				Subject:  subject,
+				Messages: readMessages,
+			}
+		})
 
-		subject, err = bps.NewPublisher(ctx, "file://"+dir)
-		Expect(err).NotTo(HaveOccurred())
-
-		shared.Subject = subject
+		lint.Publisher(&shared)
 	})
-
-	AfterEach(func() {
-		Expect(subject.Close()).To(Succeed())
-		Expect(os.RemoveAll(dir)).To(Succeed())
-	})
-
-	It("should init from URL", func() {
-		Expect(subject).NotTo(BeNil())
-	})
-
-	lint.Publisher(&shared)
 })
 
 // ------------------------------------------------------------------------
