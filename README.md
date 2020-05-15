@@ -57,3 +57,39 @@ func main() {
 
 }
 ```
+
+## Subscribing
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/bsm/bps"
+)
+
+func main() {
+	ctx := context.Background()
+	pub := bps.NewInMemPublisher()
+	defer pub.Close()
+
+	topicA := pub.Topic("topic-a")
+	topicB := pub.Topic("topic-b")
+
+	topicA.Publish(ctx, &bps.PubMessage{
+		Data: []byte("message-1"),
+	})
+	topicB.Publish(ctx, &bps.PubMessage{
+		Data: []byte("message-2"),
+	})
+	topicA.Publish(ctx, &bps.PubMessage{
+		Data: []byte("message-2"),
+	})
+
+	fmt.Println(len(topicA.(*bps.InMemTopic).Messages()))
+	fmt.Println(len(topicB.(*bps.InMemTopic).Messages()))
+
+}
+```
