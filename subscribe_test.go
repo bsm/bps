@@ -13,7 +13,7 @@ import (
 
 func init() {
 	bps.RegisterSubscriber("mem", func(_ context.Context, u *url.URL) (bps.Subscriber, error) {
-		return dummySubscriber{}, nil
+		return bps.NewInMemSubscriber(nil), nil
 	})
 }
 
@@ -31,7 +31,7 @@ var _ = Describe("RegisterSubscriber", func() {
 		Expect(err).NotTo(HaveOccurred())
 		defer sub.Close()
 
-		Expect(sub).To(BeAssignableToTypeOf(dummySubscriber{}))
+		Expect(sub).To(BeAssignableToTypeOf(&bps.InMemSubscriber{}))
 	})
 
 	It("should fail on unknown schemes", func() {
@@ -40,13 +40,53 @@ var _ = Describe("RegisterSubscriber", func() {
 	})
 })
 
-// ----------------------------------------------------------------------------
+var _ = Describe("InMemSubscriber", func() {
+	var subject *bps.InMemSubscriber
 
-type dummySubscriber struct{}
+	ctx := context.Background()
 
-func (dummySubscriber) Subscribe(context.Context, string, bps.Handler) error {
-	return errors.New("not expected to be called")
-}
-func (dummySubscriber) Close() error {
-	return nil
-}
+	BeforeEach(func() {
+		subject = bps.NewInMemSubscriber(
+			map[string][]bps.SubMessage{
+				"foo": []bps.SubMessage{
+					bps.RawSubMessage("foo1"),
+					bps.RawSubMessage("foo2"),
+				},
+			},
+		)
+	})
+
+	AfterEach(func() {
+		_ = subject.Close()
+	})
+
+	Describe("Subscribe", func() {
+		It("should handle messages", func() {
+			var handled []bps.SubMessage
+			handler := bps.HandlerFunc(func(_ context.Context, msg bps.SubMessage) error {
+				handled = append(handled, msg)
+				return nil
+			})
+
+			Expect(subject.Subscribe(ctx, "foo", handler)).To(Succeed())
+
+			Expect(handled).To(Equal([]bps.SubMessage{
+				bps.RawSubMessage("foo1"),
+				bps.RawSubMessage("foo2"),
+			}))
+		})
+
+		It("should not fail on unknown topic", func() {
+			handler := bps.HandlerFunc(func(_ context.Context, msg bps.SubMessage) error { return nil })
+
+			Expect(subject.Subscribe(ctx, "bar", handler)).To(Succeed())
+		})
+
+		It("should return handler errors", func() {
+			err := errors.New("oops")
+			handler := bps.HandlerFunc(func(_ context.Context, msg bps.SubMessage) error { return err })
+
+			Expect(subject.Subscribe(ctx, "foo", handler)).To(MatchError(err))
+		})
+	})
+})
