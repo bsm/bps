@@ -14,7 +14,7 @@ var (
 
 // Publisher defines the main publisher interface.
 type Publisher interface {
-	// Topic returns a topic handle by name. An ErrNoTopic error may be returns when topic does not exist.
+	// Topic returns a topic handle by name.
 	Topic(name string) Topic
 	// Close closes the producer connection.
 	Close() error
