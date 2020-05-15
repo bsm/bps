@@ -44,7 +44,7 @@ var _ = Describe("RegisterSubscriber", func() {
 
 type dummySubscriber struct{}
 
-func (dummySubscriber) Subscribe(context.Context, string, bps.Handler, *bps.SubscribeOptions) error {
+func (dummySubscriber) Subscribe(context.Context, string, bps.Handler) error {
 	return errors.New("not expected to be called")
 }
 func (dummySubscriber) Close() error {

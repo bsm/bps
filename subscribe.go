@@ -34,25 +34,13 @@ func (f HandlerFunc) Handle(ctx context.Context, msg SubMessage) error {
 
 // ----------------------------------------------------------------------------
 
-// SubscribeOptions defines subscribe options.
-// Note: not every option may be supported by the underlying implementation.
-type SubscribeOptions struct {
-}
-
-// ----------------------------------------------------------------------------
-
 // Subscriber defines the main subscriber interface.
 type Subscriber interface {
 	// Subscribe subscribes for topic messages and blocks till context is cancelled or error occurs.
 	//
 	// Handler is provided an atomic message batch (entire batch either succeeds or fails).
 	// Batch is guaranteed to contain at least 1 message.
-	Subscribe(
-		ctx context.Context,
-		topic string,
-		handler Handler,
-		opts *SubscribeOptions,
-	) error
+	Subscribe(ctx context.Context, topic string, handler Handler) error
 	// Close closes the subscriber connection.
 	Close() error
 }
