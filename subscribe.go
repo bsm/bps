@@ -16,6 +16,7 @@ var (
 
 // SubMessage defines a subscription message details.
 type SubMessage interface {
+	// Data returns raw (serialized) message data.
 	Data() []byte
 }
 
