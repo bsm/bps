@@ -14,7 +14,7 @@ var (
 
 // Publisher defines the main publisher interface.
 type Publisher interface {
-	// Topic returns a topic handle by name. An ErrNoTopic error may be returns when topic does not exist.
+	// Topic returns a topic handle by name.
 	Topic(name string) Topic
 	// Close closes the producer connection.
 	Close() error
@@ -22,7 +22,7 @@ type Publisher interface {
 
 // NewPublisher inits to a publisher via URL.
 //
-//   pub, err := bps.NewPublisher(context.TODO(), "kafka://[10.0.0.1:9092|10.0.0.2:9092|10.0.0.3:9092]/namespace")
+//   pub, err := bps.NewPublisher(context.TODO(), "kafka://10.0.0.1:9092,10.0.0.2:9092,10.0.0.3:9092/namespace")
 func NewPublisher(ctx context.Context, urlStr string) (Publisher, error) {
 	u, err := url.Parse(urlStr)
 	if err != nil {
