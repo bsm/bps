@@ -14,6 +14,15 @@ var (
 
 // ----------------------------------------------------------------------------
 
+type done string
+
+func (s done) Error() string { return string(s) }
+
+// Done is intended to communicate "stop operation" from callbacks.
+const Done = done("done")
+
+// ----------------------------------------------------------------------------
+
 // SubMessage defines a subscription message details.
 type SubMessage interface {
 	// Data returns raw (serialized) message data.
@@ -21,26 +30,24 @@ type SubMessage interface {
 }
 
 // Handler defines a message handler.
+// Consuming can be stopped by returning bps.Done.
 type Handler interface {
-	Handle(context.Context, SubMessage) error
+	Handle(SubMessage) error
 }
 
 // HandlerFunc is a func-based handler adapter.
-type HandlerFunc func(context.Context, SubMessage) error
+type HandlerFunc func(SubMessage) error
 
 // Handle handles a single message.
-func (f HandlerFunc) Handle(ctx context.Context, msg SubMessage) error {
-	return f(ctx, msg)
+func (f HandlerFunc) Handle(msg SubMessage) error {
+	return f(msg)
 }
 
 // ----------------------------------------------------------------------------
 
 // Subscriber defines the main subscriber interface.
 type Subscriber interface {
-	// Subscribe subscribes for topic messages and blocks till context is cancelled or error occurs.
-	//
-	// Handler is provided an atomic message batch (entire batch either succeeds or fails).
-	// Batch is guaranteed to contain at least 1 message.
+	// Subscribe subscribes for topic messages and blocks till context is cancelled or error occurs or bps.Done is returned.
 	Subscribe(ctx context.Context, topic string, handler Handler) error
 	// Close closes the subscriber connection.
 	Close() error

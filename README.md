@@ -18,9 +18,9 @@ go get -u github.com/bsm/bps
 
 ## Backends
 
-- [Google PubSub](https://godoc.org/github.com/bsm/bps/pubsub)
-- [File](https://godoc.org/github.com/bsm/bps/file)
-- [Kafka](https://godoc.org/github.com/bsm/bps/kafka)
+* [Google PubSub](https://godoc.org/github.com/bsm/bps/pubsub)
+* [File](https://godoc.org/github.com/bsm/bps/file)
+* [Kafka](https://godoc.org/github.com/bsm/bps/kafka)
 
 ## Publishing
 
