@@ -14,16 +14,21 @@ var (
 
 // ----------------------------------------------------------------------------
 
+// SubMessage defines a subscription message details.
+type SubMessage interface {
+	Data() []byte
+}
+
 // Handler defines a message handler.
 type Handler interface {
-	Handle(context.Context, Message) error
+	Handle(context.Context, SubMessage) error
 }
 
 // HandlerFunc is a func-based handler adapter.
-type HandlerFunc func(context.Context, Message) error
+type HandlerFunc func(context.Context, SubMessage) error
 
 // Handle handles a single message.
-func (f HandlerFunc) Handle(ctx context.Context, msg Message) error {
+func (f HandlerFunc) Handle(ctx context.Context, msg SubMessage) error {
 	return f(ctx, msg)
 }
 

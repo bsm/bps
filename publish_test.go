@@ -53,7 +53,7 @@ var _ = Describe("InMemPublisher", func() {
 	Context("lint", func() {
 		var shared lint.PublisherInput
 
-		readMessages := func(topic string, _ int) ([]*bps.Message, error) {
+		readMessages := func(topic string, _ int) ([]*bps.PubMessage, error) {
 			return subject.Topic(topic).(*bps.InMemTopic).Messages(), nil
 		}
 

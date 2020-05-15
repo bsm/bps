@@ -110,7 +110,7 @@ type Topic struct {
 }
 
 // Publish implements the bps.Topic interface.
-func (t *Topic) Publish(ctx context.Context, msg *bps.Message) error {
+func (t *Topic) Publish(ctx context.Context, msg *bps.PubMessage) error {
 	res := t.topic.Publish(ctx, &native.Message{
 		ID:         msg.ID,
 		Data:       msg.Data,
@@ -121,7 +121,7 @@ func (t *Topic) Publish(ctx context.Context, msg *bps.Message) error {
 }
 
 // PublishBatch implements the bps.Topic interface.
-func (t *Topic) PublishBatch(ctx context.Context, batch []*bps.Message) error {
+func (t *Topic) PublishBatch(ctx context.Context, batch []*bps.PubMessage) error {
 	for _, msg := range batch {
 		if err := t.Publish(ctx, msg); err != nil {
 			return err

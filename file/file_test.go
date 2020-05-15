@@ -40,16 +40,16 @@ var _ = Describe("Publisher", func() {
 	Context("lint", func() {
 		var shared lint.PublisherInput
 
-		readMessages := func(topic string, _ int) ([]*bps.Message, error) {
+		readMessages := func(topic string, _ int) ([]*bps.PubMessage, error) {
 			f, err := os.Open(filepath.Join(dir, topic))
 			if err != nil {
 				return nil, err
 			}
 			defer f.Close()
 
-			var res []*bps.Message
+			var res []*bps.PubMessage
 			for dec := json.NewDecoder(f); dec.More(); {
-				var msg *bps.Message
+				var msg *bps.PubMessage
 				if err := dec.Decode(&msg); err != nil {
 					return nil, err
 				}
