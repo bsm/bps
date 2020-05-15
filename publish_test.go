@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/url"
 
+	"github.com/bsm/bps"
 	"github.com/bsm/bps/internal/lint"
 
-	"github.com/bsm/bps"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

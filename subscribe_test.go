@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/bsm/bps"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -36,17 +37,6 @@ var _ = Describe("RegisterSubscriber", func() {
 	It("should fail on unknown schemes", func() {
 		_, err := bps.NewSubscriber(ctx, "unknown://test.host/path")
 		Expect(err).To(MatchError(`unknown URL scheme "unknown"`))
-	})
-})
-
-var _ = Describe("SubscribeOptions", func() {
-	It("should normalize / apply defaults", func() {
-		Expect((*bps.SubscribeOptions)(nil).Normalize()).To(Equal(&bps.SubscribeOptions{
-			BatchSize: 1,
-		}))
-		Expect(new(bps.SubscribeOptions).Normalize()).To(Equal(&bps.SubscribeOptions{
-			BatchSize: 1,
-		}))
 	})
 })
 

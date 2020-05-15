@@ -30,21 +30,8 @@ func (f HandlerFunc) Handle(ctx context.Context, msg Message) error {
 // ----------------------------------------------------------------------------
 
 // SubscribeOptions defines subscribe options.
+// Note: not every option may be supported by the underlying implementation.
 type SubscribeOptions struct {
-	// BatchSize holds desired message batch size.
-	// Default: 1.
-	BatchSize int
-}
-
-// Normalize normalises subscriber options by applying defaults.
-func (o *SubscribeOptions) Normalize() *SubscribeOptions {
-	if o == nil {
-		o = &SubscribeOptions{}
-	}
-	if o.BatchSize == 0 {
-		o.BatchSize = 1
-	}
-	return o
 }
 
 // ----------------------------------------------------------------------------
