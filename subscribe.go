@@ -19,6 +19,17 @@ type SubscribeOptions struct {
 	BatchSize int
 }
 
+// Normalize normalises subscriber options by applying defaults.
+func (o *SubscribeOptions) Normalize() *SubscribeOptions {
+	if o == nil {
+		o = &SubscribeOptions{}
+	}
+	if o.BatchSize == 0 {
+		o.BatchSize = 1
+	}
+	return o
+}
+
 // ----------------------------------------------------------------------------
 
 // Subscriber defines the main subscriber interface.

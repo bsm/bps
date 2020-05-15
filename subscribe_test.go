@@ -37,6 +37,17 @@ var _ = Describe("RegisterSubscriber", func() {
 	})
 })
 
+var _ = Describe("SubscribeOptions", func() {
+	It("should normalize / apply defaults", func() {
+		Expect((*bps.SubscribeOptions)(nil).Normalize()).To(Equal(&bps.SubscribeOptions{
+			BatchSize: 1,
+		}))
+		Expect(new(bps.SubscribeOptions).Normalize()).To(Equal(&bps.SubscribeOptions{
+			BatchSize: 1,
+		}))
+	})
+})
+
 // ----------------------------------------------------------------------------
 
 type dummySubscriber struct{}
