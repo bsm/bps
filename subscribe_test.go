@@ -28,6 +28,8 @@ var _ = Describe("RegisterSubscriber", func() {
 	It("should allow to init subscribers by URL", func() {
 		sub, err := bps.NewSubscriber(ctx, "mem://test.host/path")
 		Expect(err).NotTo(HaveOccurred())
+		defer sub.Close()
+
 		Expect(sub).To(BeAssignableToTypeOf(dummySubscriber{}))
 	})
 
@@ -52,10 +54,9 @@ var _ = Describe("SubscribeOptions", func() {
 
 type dummySubscriber struct{}
 
-func (dummySubscriber) Subscribe(context.Context, string, func([]bps.Message) error, *bps.SubscribeOptions) error {
+func (dummySubscriber) Subscribe(context.Context, string, bps.Handler, *bps.SubscribeOptions) error {
 	return errors.New("not expected to be called")
 }
-
 func (dummySubscriber) Close() error {
-	return errors.New("not expected to be called")
+	return nil
 }

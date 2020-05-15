@@ -12,6 +12,23 @@ var (
 	subRegMu sync.Mutex
 )
 
+// ----------------------------------------------------------------------------
+
+// Handler defines a message handler.
+type Handler interface {
+	Handle(context.Context, Message) error
+}
+
+// HandlerFunc is a func-based handler adapter.
+type HandlerFunc func(context.Context, Message) error
+
+// Handle handles a single message.
+func (f HandlerFunc) Handle(ctx context.Context, msg Message) error {
+	return f(ctx, msg)
+}
+
+// ----------------------------------------------------------------------------
+
 // SubscribeOptions defines subscribe options.
 type SubscribeOptions struct {
 	// BatchSize holds desired message batch size.
@@ -41,7 +58,7 @@ type Subscriber interface {
 	Subscribe(
 		ctx context.Context,
 		topic string,
-		handler func([]Message) error,
+		handler Handler,
 		opts *SubscribeOptions,
 	) error
 	// Close closes the subscriber connection.
