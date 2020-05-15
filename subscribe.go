@@ -123,7 +123,7 @@ func (s *InMemSubscriber) Subscribe(ctx context.Context, topic string, handler H
 			return nil
 		}
 
-		if err := handler.Handle(ctx, msg); err != nil {
+		if err := handler.Handle(msg); err != nil {
 			return err
 		}
 	}

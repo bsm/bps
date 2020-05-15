@@ -45,6 +45,8 @@ var _ = Describe("InMemSubscriber", func() {
 
 	ctx := context.Background()
 
+	noop := bps.HandlerFunc(func(bps.SubMessage) error { return nil })
+
 	BeforeEach(func() {
 		subject = bps.NewInMemSubscriber(
 			map[string][]bps.SubMessage{
@@ -63,7 +65,7 @@ var _ = Describe("InMemSubscriber", func() {
 	Describe("Subscribe", func() {
 		It("should handle messages", func() {
 			var handled []bps.SubMessage
-			handler := bps.HandlerFunc(func(_ context.Context, msg bps.SubMessage) error {
+			handler := bps.HandlerFunc(func(msg bps.SubMessage) error {
 				handled = append(handled, msg)
 				return nil
 			})
@@ -77,16 +79,21 @@ var _ = Describe("InMemSubscriber", func() {
 		})
 
 		It("should not fail on unknown topic", func() {
-			handler := bps.HandlerFunc(func(_ context.Context, msg bps.SubMessage) error { return nil })
-
-			Expect(subject.Subscribe(ctx, "bar", handler)).To(Succeed())
+			Expect(subject.Subscribe(ctx, "bar", noop)).To(Succeed())
 		})
 
-		It("should return handler errors", func() {
+		It("should return handler error", func() {
 			err := errors.New("oops")
-			handler := bps.HandlerFunc(func(_ context.Context, msg bps.SubMessage) error { return err })
+			handler := bps.HandlerFunc(func(bps.SubMessage) error { return err })
 
 			Expect(subject.Subscribe(ctx, "foo", handler)).To(MatchError(err))
+		})
+
+		It("should check context", func() {
+			canceledCtx, cancel := context.WithCancel(context.Background())
+			cancel()
+
+			Expect(subject.Subscribe(canceledCtx, "foo", noop)).To(MatchError(context.Canceled))
 		})
 	})
 })
