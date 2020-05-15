@@ -35,7 +35,7 @@ var _ = Describe("RegisterPublisher", func() {
 
 	It("should fail on unknown schemes", func() {
 		_, err := bps.NewPublisher(ctx, "unknown://test.host/path")
-		Expect(err).To(MatchError(`bps: unknown URL scheme "unknown"`))
+		Expect(err).To(MatchError(`unknown URL scheme "unknown"`))
 	})
 })
 

@@ -33,7 +33,7 @@ func NewPublisher(ctx context.Context, urlStr string) (Publisher, error) {
 	factory, ok := pubReg[u.Scheme]
 	pubRegMu.Unlock()
 	if !ok {
-		return nil, fmt.Errorf("bps: unknown URL scheme %q", u.Scheme)
+		return nil, fmt.Errorf("unknown URL scheme %q", u.Scheme)
 	}
 	return factory(ctx, u)
 }
