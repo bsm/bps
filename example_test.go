@@ -32,3 +32,34 @@ func ExamplePublisher() {
 	// 2
 	// 1
 }
+
+func ExampleSubscriber() {
+	// ubsubscribing is done by canceling context, optional:
+	ctx, unsubscribe := context.WithCancel(context.Background())
+	defer unsubscribe()
+
+	sub := bps.NewInMemSubscriber(
+		map[string][]bps.SubMessage{
+			"foo": []bps.SubMessage{
+				bps.RawSubMessage("foo1"),
+				bps.RawSubMessage("foo2"),
+			},
+		},
+	)
+	defer sub.Close()
+
+	handler := bps.HandlerFunc(func(msg bps.SubMessage) error {
+		fmt.Printf("%s\n", msg.Data())
+		return nil
+	})
+
+	// blocks till all the messages are consumed or error occurs:
+	err := sub.Subscribe(ctx, "foo", handler)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	// Output:
+	// foo1
+	// foo2
+}

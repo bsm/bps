@@ -29,6 +29,14 @@ type SubMessage interface {
 	Data() []byte
 }
 
+// RawSubMessage is an adapter for raw slice of bytes that behaves as a SubMessage.
+type RawSubMessage []byte
+
+// Data returns raw message bytes.
+func (m RawSubMessage) Data() []byte {
+	return m
+}
+
 // Handler defines a message handler.
 // Consuming can be stopped by returning bps.Done.
 type Handler interface {
@@ -84,4 +92,65 @@ func RegisterSubscriber(scheme string, factory SubscriberFactory) {
 		panic("protocol " + scheme + " already registered")
 	}
 	subReg[scheme] = factory
+}
+
+// ----------------------------------------------------------------------------
+
+// InMemSubscriber is a subscriber, that consumes messages from seeded data.
+// It is useful mainly for testing.
+type InMemSubscriber struct {
+	mu   sync.Mutex
+	msgs map[string][]SubMessage
+}
+
+// NewInMemSubscriber returns new subscriber, that consumes messages from seeded data.
+func NewInMemSubscriber(messagesByTopic map[string][]SubMessage) *InMemSubscriber {
+	byTopic := make(map[string][]SubMessage, len(messagesByTopic))
+	for topic, msgs := range messagesByTopic {
+		byTopic[topic] = append(make([]SubMessage, 0, len(msgs)), msgs...)
+	}
+	return &InMemSubscriber{
+		msgs: byTopic,
+	}
+}
+
+// Subscribe subscribes to in-memory messages by topic.
+func (s *InMemSubscriber) Subscribe(ctx context.Context, topic string, handler Handler) error {
+	for {
+		// check ctx/cancel BEFORE shift-ing each message:
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		msg, ok := s.shiftMessage(topic)
+		if !ok {
+			return nil
+		}
+
+		if err := handler.Handle(msg); err != nil {
+			return err
+		}
+	}
+}
+
+func (s *InMemSubscriber) shiftMessage(topic string) (SubMessage, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	msgs := s.msgs[topic]
+
+	if len(msgs) == 0 {
+		return nil, false
+	}
+
+	s.msgs[topic] = msgs[1:]
+	return msgs[0], true
+}
+
+// Close forgets any pending messages.
+func (s *InMemSubscriber) Close() error {
+	s.mu.Lock()
+	s.msgs = nil
+	s.mu.Unlock()
+	return nil
 }
