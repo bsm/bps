@@ -15,5 +15,5 @@ func Example() {
 	}
 	defer pub.Close()
 
-	pub.Topic("topic").Publish(ctx, &bps.Message{Data: []byte("message")})
+	pub.Topic("topic").Publish(ctx, &bps.PubMessage{Data: []byte("message")})
 }

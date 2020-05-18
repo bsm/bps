@@ -7,7 +7,7 @@ import (
 	"github.com/bsm/bps"
 )
 
-func Example() {
+func ExamplePublisher() {
 	ctx := context.Background()
 	pub := bps.NewInMemPublisher()
 	defer pub.Close()
@@ -15,13 +15,13 @@ func Example() {
 	topicA := pub.Topic("topic-a")
 	topicB := pub.Topic("topic-b")
 
-	topicA.Publish(ctx, &bps.Message{
+	topicA.Publish(ctx, &bps.PubMessage{
 		Data: []byte("message-1"),
 	})
-	topicB.Publish(ctx, &bps.Message{
+	topicB.Publish(ctx, &bps.PubMessage{
 		Data: []byte("message-2"),
 	})
-	topicA.Publish(ctx, &bps.Message{
+	topicA.Publish(ctx, &bps.PubMessage{
 		Data: []byte("message-2"),
 	})
 

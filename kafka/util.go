@@ -94,7 +94,7 @@ func parseQuery(query url.Values) *sarama.Config {
 	return config
 }
 
-func convertMessage(topic string, msg *bps.Message) *sarama.ProducerMessage {
+func convertMessage(topic string, msg *bps.PubMessage) *sarama.ProducerMessage {
 	var key sarama.Encoder
 	if msg.ID != "" {
 		key = sarama.StringEncoder(msg.ID)

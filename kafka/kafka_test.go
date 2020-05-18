@@ -102,7 +102,7 @@ func sandboxCheck() error {
 	return pub.Close()
 }
 
-func readMessages(topic string, _ int) ([]*bps.Message, error) {
+func readMessages(topic string, _ int) ([]*bps.PubMessage, error) {
 	csmr, err := sarama.NewConsumer(brokerAddrs, nil)
 	if err != nil {
 		return nil, err
@@ -114,7 +114,7 @@ func readMessages(topic string, _ int) ([]*bps.Message, error) {
 		return nil, err
 	}
 
-	var msgs []*bps.Message
+	var msgs []*bps.PubMessage
 	for _, part := range parts {
 		pc, err := csmr.ConsumePartition(topic, part, sarama.OffsetOldest)
 		if err != nil {
@@ -125,13 +125,13 @@ func readMessages(topic string, _ int) ([]*bps.Message, error) {
 	return msgs, nil
 }
 
-func readPartition(msgs []*bps.Message, pc sarama.PartitionConsumer) []*bps.Message {
+func readPartition(msgs []*bps.PubMessage, pc sarama.PartitionConsumer) []*bps.PubMessage {
 	defer pc.Close()
 
 	for {
 		select {
 		case msg := <-pc.Messages():
-			msgs = append(msgs, &bps.Message{ID: string(msg.Key), Data: msg.Value})
+			msgs = append(msgs, &bps.PubMessage{ID: string(msg.Key), Data: msg.Value})
 		case <-time.After(5 * time.Millisecond):
 			return msgs
 		}

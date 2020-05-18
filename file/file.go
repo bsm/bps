@@ -77,11 +77,11 @@ type fileTopic struct {
 	mu   sync.Mutex
 }
 
-func (t *fileTopic) Publish(ctx context.Context, msg *bps.Message) error {
-	return t.PublishBatch(ctx, []*bps.Message{msg})
+func (t *fileTopic) Publish(ctx context.Context, msg *bps.PubMessage) error {
+	return t.PublishBatch(ctx, []*bps.PubMessage{msg})
 }
 
-func (t *fileTopic) PublishBatch(_ context.Context, batch []*bps.Message) error {
+func (t *fileTopic) PublishBatch(_ context.Context, batch []*bps.PubMessage) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 

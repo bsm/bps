@@ -22,5 +22,5 @@ bench: bench/. $(patsubst %/go.mod,bench/%,$(wildcard */go.mod))
 bump-deps: bump-deps/. $(patsubst %/go.mod,bump-deps/%,$(wildcard */go.mod))
 
 # go get -u github.com/davelondon/rebecca/cmd/becca
-README.md: README.md.tpl
+README.md: README.md.tpl *example_test.go
 	becca -package github.com/bsm/bps

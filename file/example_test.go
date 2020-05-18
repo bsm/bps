@@ -29,7 +29,7 @@ func Example() {
 	defer pub.Close()
 
 	// add a message to topic
-	pub.Topic("topic").Publish(ctx, &bps.Message{Data: []byte("message")})
+	pub.Topic("topic").Publish(ctx, &bps.PubMessage{Data: []byte("message")})
 
 	// check files in dir
 	entries, _ := filepath.Glob(dir + "/*")

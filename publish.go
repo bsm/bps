@@ -33,18 +33,12 @@ func NewPublisher(ctx context.Context, urlStr string) (Publisher, error) {
 	factory, ok := pubReg[u.Scheme]
 	pubRegMu.Unlock()
 	if !ok {
-		return nil, fmt.Errorf("bps: unknown URL scheme %q", u.Scheme)
+		return nil, fmt.Errorf("unknown URL scheme %q", u.Scheme)
 	}
 	return factory(ctx, u)
 }
 
-// Topic is a publsher handle to a topic.
-type Topic interface {
-	// Publish publishes a message to the topic.
-	Publish(context.Context, *Message) error
-	// PublishBatch publishes a batch of messages to the topic.
-	PublishBatch(context.Context, []*Message) error
-}
+// --------------------------------------------------------------------
 
 // PublisherFactory constructs a publisher from a URL.
 type PublisherFactory func(context.Context, *url.URL) (Publisher, error)
@@ -59,6 +53,28 @@ func RegisterPublisher(scheme string, factory PublisherFactory) {
 		panic("protocol " + scheme + " already registered")
 	}
 	pubReg[scheme] = factory
+}
+
+// --------------------------------------------------------------------
+
+// PubMessage represents a single message for publishing.
+type PubMessage struct {
+	// ID is a message identifier.
+	ID string `json:"id,omitempty"`
+
+	// Data is the message payload.
+	Data []byte `json:"data,omitempty"`
+
+	// Attributes contains key-value labels.
+	Attributes map[string]string `json:"attributes,omitempty"`
+}
+
+// Topic is a publisher handle to a topic.
+type Topic interface {
+	// Publish publishes a message to the topic.
+	Publish(context.Context, *PubMessage) error
+	// PublishBatch publishes a batch of messages to the topic.
+	PublishBatch(context.Context, []*PubMessage) error
 }
 
 // --------------------------------------------------------------------
@@ -104,12 +120,12 @@ func (*InMemPublisher) Close() error {
 // InMemTopic is an in-memory implementation of a Topic.
 // Useful for tests.
 type InMemTopic struct {
-	messages []*Message
+	messages []*PubMessage
 	mu       sync.RWMutex
 }
 
 // Publish implements Topic.
-func (t *InMemTopic) Publish(_ context.Context, msg *Message) error {
+func (t *InMemTopic) Publish(_ context.Context, msg *PubMessage) error {
 	t.mu.Lock()
 	t.messages = append(t.messages, msg)
 	t.mu.Unlock()
@@ -117,7 +133,7 @@ func (t *InMemTopic) Publish(_ context.Context, msg *Message) error {
 }
 
 // PublishBatch implements Topic.
-func (t *InMemTopic) PublishBatch(_ context.Context, batch []*Message) error {
+func (t *InMemTopic) PublishBatch(_ context.Context, batch []*PubMessage) error {
 	t.mu.Lock()
 	t.messages = append(t.messages, batch...)
 	t.mu.Unlock()
@@ -125,7 +141,7 @@ func (t *InMemTopic) PublishBatch(_ context.Context, batch []*Message) error {
 }
 
 // Messages returns published messages.
-func (t *InMemTopic) Messages() []*Message {
+func (t *InMemTopic) Messages() []*PubMessage {
 	t.mu.RLock()
 	messages := t.messages
 	t.mu.RUnlock()

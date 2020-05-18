@@ -99,13 +99,13 @@ type topicAsync struct {
 }
 
 // Publish implements the bps.Topic interface.
-func (t *topicAsync) Publish(_ context.Context, msg *bps.Message) error {
+func (t *topicAsync) Publish(_ context.Context, msg *bps.PubMessage) error {
 	t.producer.Input() <- convertMessage(t.name, msg)
 	return nil
 }
 
 // PublishBatch implements the bps.Topic interface.
-func (t *topicAsync) PublishBatch(ctx context.Context, batch []*bps.Message) error {
+func (t *topicAsync) PublishBatch(ctx context.Context, batch []*bps.PubMessage) error {
 	for _, msg := range batch {
 		if err := t.Publish(ctx, msg); err != nil {
 			return err
@@ -151,13 +151,13 @@ type topicSync struct {
 }
 
 // Publish implements the bps.Topic interface.
-func (t *topicSync) Publish(_ context.Context, msg *bps.Message) error {
+func (t *topicSync) Publish(_ context.Context, msg *bps.PubMessage) error {
 	_, _, err := t.producer.SendMessage(convertMessage(t.name, msg))
 	return err
 }
 
 // PublishBatch implements the bps.Topic interface.
-func (t *topicSync) PublishBatch(ctx context.Context, batch []*bps.Message) error {
+func (t *topicSync) PublishBatch(ctx context.Context, batch []*bps.PubMessage) error {
 	if len(batch) == 0 {
 		return nil
 	}

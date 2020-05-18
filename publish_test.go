@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/url"
 
+	"github.com/bsm/bps"
 	"github.com/bsm/bps/internal/lint"
 
-	"github.com/bsm/bps"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -35,7 +35,7 @@ var _ = Describe("RegisterPublisher", func() {
 
 	It("should fail on unknown schemes", func() {
 		_, err := bps.NewPublisher(ctx, "unknown://test.host/path")
-		Expect(err).To(MatchError(`bps: unknown URL scheme "unknown"`))
+		Expect(err).To(MatchError(`unknown URL scheme "unknown"`))
 	})
 })
 
@@ -53,7 +53,7 @@ var _ = Describe("InMemPublisher", func() {
 	Context("lint", func() {
 		var shared lint.PublisherInput
 
-		readMessages := func(topic string, _ int) ([]*bps.Message, error) {
+		readMessages := func(topic string, _ int) ([]*bps.PubMessage, error) {
 			return subject.Topic(topic).(*bps.InMemTopic).Messages(), nil
 		}
 

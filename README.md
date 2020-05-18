@@ -18,9 +18,9 @@ go get -u github.com/bsm/bps
 
 ## Backends
 
-- [Google PubSub](https://godoc.org/github.com/bsm/bps/pubsub)
-- [File](https://godoc.org/github.com/bsm/bps/file)
-- [Kafka](https://godoc.org/github.com/bsm/bps/kafka)
+* [Google PubSub](https://godoc.org/github.com/bsm/bps/pubsub)
+* [File](https://godoc.org/github.com/bsm/bps/file)
+* [Kafka](https://godoc.org/github.com/bsm/bps/kafka)
 
 ## Publishing
 
@@ -42,13 +42,13 @@ func main() {
 	topicA := pub.Topic("topic-a")
 	topicB := pub.Topic("topic-b")
 
-	topicA.Publish(ctx, &bps.Message{
+	topicA.Publish(ctx, &bps.PubMessage{
 		Data: []byte("message-1"),
 	})
-	topicB.Publish(ctx, &bps.Message{
+	topicB.Publish(ctx, &bps.PubMessage{
 		Data: []byte("message-2"),
 	})
-	topicA.Publish(ctx, &bps.Message{
+	topicA.Publish(ctx, &bps.PubMessage{
 		Data: []byte("message-2"),
 	})
 

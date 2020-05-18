@@ -36,3 +36,18 @@ import (
 
 func main() {{ "ExamplePublisher" | code }}
 ```
+
+## Subscribing
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/bsm/bps"
+)
+
+func main() {{ "ExamplePublisher" | code }}
+```

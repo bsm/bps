@@ -77,7 +77,7 @@ func sandboxCheck() error {
 	return psc.Close()
 }
 
-func readMessages(topic string, max int) ([]*bps.Message, error) {
+func readMessages(topic string, max int) ([]*bps.PubMessage, error) {
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(10*time.Second))
 	defer cancel()
 
@@ -87,7 +87,7 @@ func readMessages(topic string, max int) ([]*bps.Message, error) {
 	}
 	defer psc.Close()
 
-	var msgs []*bps.Message
+	var msgs []*bps.PubMessage
 	var mu sync.Mutex
 
 	if err := psc.Subscription(topic).Receive(ctx, func(ctx context.Context, msg *native.Message) {
@@ -96,7 +96,7 @@ func readMessages(topic string, max int) ([]*bps.Message, error) {
 		mu.Lock()
 		defer mu.Unlock()
 
-		msgs = append(msgs, &bps.Message{ID: msg.ID, Data: msg.Data})
+		msgs = append(msgs, &bps.PubMessage{ID: msg.ID, Data: msg.Data})
 		if len(msgs) == max {
 			cancel()
 		}
