@@ -105,8 +105,12 @@ type InMemSubscriber struct {
 
 // NewInMemSubscriber returns new subscriber, that consumes messages from seeded data.
 func NewInMemSubscriber(messagesByTopic map[string][]SubMessage) *InMemSubscriber {
+	byTopic := make(map[string][]SubMessage, len(messagesByTopic))
+	for topic, msgs := range messagesByTopic {
+		byTopic[topic] = append(make([]SubMessage, 0, len(msgs)), msgs...)
+	}
 	return &InMemSubscriber{
-		msgs: messagesByTopic,
+		msgs: byTopic,
 	}
 }
 
