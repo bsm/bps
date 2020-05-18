@@ -148,14 +148,14 @@ func (s *fileSub) Subscribe(ctx context.Context, topic string, handler bps.Handl
 			return err
 		}
 
-		var rec json.RawMessage
-		if err := dec.Decode(&rec); errors.Is(err, io.EOF) {
+		var msg subMessage
+		if err := dec.Decode(&msg); errors.Is(err, io.EOF) {
 			break
 		} else if err != nil {
 			return err
 		}
 
-		if err := handler.Handle(subMessage(rec)); errors.Is(err, bps.Done) {
+		if err := handler.Handle(msg); errors.Is(err, bps.Done) {
 			break
 		} else if err != nil {
 			return err
@@ -168,6 +168,6 @@ func (s *fileSub) Close() error {
 	return nil
 }
 
-type subMessage []byte
+type subMessage struct{ bps.PubMessage }
 
-func (m subMessage) Data() []byte { return m }
+func (m subMessage) Data() []byte { return m.PubMessage.Data }

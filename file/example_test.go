@@ -71,7 +71,7 @@ func ExampleSubscriber() {
 	}
 
 	// Output:
-	// {"data":"bWVzc2FnZQ=="}
+	// message
 }
 
 func SeedTopic(ctx context.Context, dir, topic string) {

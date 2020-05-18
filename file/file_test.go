@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/bsm/bps"
+	"github.com/bsm/bps/file"
 	"github.com/bsm/bps/internal/lint"
 
 	. "github.com/onsi/ginkgo"
@@ -103,14 +104,21 @@ var _ = Describe("Subscriber", func() {
 			shared = lint.SubscriberInput{
 				Subject: subject,
 				SeededMessages: []bps.SubMessage{
-					bps.RawSubMessage(`{"msg":1}`),
-					bps.RawSubMessage(`{"msg":2}`),
+					bps.RawSubMessage(`message-1`),
+					bps.RawSubMessage(`message-2`),
 				},
 				Setup: func(topic string) error {
-					return ioutil.WriteFile(filepath.Join(dir, topic), []byte(`
-						{"msg":1}
-						{"msg":2}
-					`), 0666)
+					pub, err := file.NewPublisher(dir)
+					if err != nil {
+						return err
+					}
+					defer pub.Close()
+
+					msgs := []*bps.PubMessage{
+						{Data: []byte("message-1")},
+						{Data: []byte("message-2")},
+					}
+					return pub.Topic(topic).PublishBatch(ctx, msgs)
 				},
 				// no need for Teardown as entire tmp dir will be removed
 			}
