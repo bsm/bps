@@ -102,25 +102,10 @@ var _ = Describe("Subscriber", func() {
 
 		BeforeEach(func() {
 			shared = lint.SubscriberInput{
-				Subject: subject,
-				SeededMessages: []bps.SubMessage{
-					bps.RawSubMessage(`message-1`),
-					bps.RawSubMessage(`message-2`),
+				Subject: func(topic string, messages []bps.SubMessage) bps.Subscriber {
+					seedTopic(dir, topic, messages)
+					return subject
 				},
-				Setup: func(topic string) error {
-					pub, err := file.NewPublisher(dir)
-					if err != nil {
-						return err
-					}
-					defer pub.Close()
-
-					msgs := []*bps.PubMessage{
-						{Data: []byte("message-1")},
-						{Data: []byte("message-2")},
-					}
-					return pub.Topic(topic).PublishBatch(ctx, msgs)
-				},
-				// no need for Teardown as entire tmp dir will be removed
 			}
 		})
 
@@ -133,4 +118,20 @@ var _ = Describe("Subscriber", func() {
 func TestSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "bps/file")
+}
+
+// ------------------------------------------------------------------------
+
+func seedTopic(dir, topic string, messages []bps.SubMessage) {
+	pub, err := file.NewPublisher(dir)
+	Expect(err).NotTo(HaveOccurred())
+	defer pub.Close()
+
+	pubMessages := make([]*bps.PubMessage, 0, len(messages))
+	for _, msg := range messages {
+		pubMessages = append(pubMessages, &bps.PubMessage{
+			Data: msg.Data(),
+		})
+	}
+	Expect(pub.Topic(topic).PublishBatch(context.Background(), pubMessages)).To(Succeed())
 }

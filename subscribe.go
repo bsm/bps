@@ -2,6 +2,7 @@ package bps
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"sync"
@@ -127,7 +128,9 @@ func (s *InMemSubscriber) Subscribe(ctx context.Context, topic string, handler H
 			return nil
 		}
 
-		if err := handler.Handle(msg); err != nil {
+		if err := handler.Handle(msg); errors.Is(err, Done) {
+			return nil
+		} else if err != nil {
 			return err
 		}
 	}
