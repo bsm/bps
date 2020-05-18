@@ -116,7 +116,7 @@ var _ = Describe("Subscriber", func() {
 			}
 		})
 
-		lint.Subcriber(&shared)
+		lint.Subscriber(&shared)
 	})
 })
 

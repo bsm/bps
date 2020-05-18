@@ -25,8 +25,8 @@ type SubscriberInput struct {
 	Teardown func(topic string) error
 }
 
-// Subcriber lints subscribers.
-func Subcriber(input *SubscriberInput) {
+// Subscriber lints subscribers.
+func Subscriber(input *SubscriberInput) {
 	var subject bps.Subscriber
 	var handler *mockHandler
 	var ctx = context.Background()
