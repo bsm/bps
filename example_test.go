@@ -50,7 +50,7 @@ func ExampleSubscriber() {
 
 	handler := bps.HandlerFunc(func(msg bps.SubMessage) error {
 		fmt.Printf("%s\n", msg.Data())
-		return nil
+		return nil // or bps.Done to stop/unsubscribe
 	})
 
 	// blocks till all the messages are consumed or error occurs:
