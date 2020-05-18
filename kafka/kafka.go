@@ -1,6 +1,7 @@
 // Package kafka provides a Kafka abstraction through github.com/Shopify/sarama.
 //
-// bps.NewPublisher supports `kafka` + `kafka+sync` schemes and the following query parameters:
+// Both bps.NewPublisher (`kafka` + `kafka+sync` schemes) and bps.NewConsumer (`kafka` scheme)
+// support the following query parameters:
 //
 //   client.id
 //      A user-provided string sent with every request to the brokers for logging debugging, and auditing
@@ -11,6 +12,9 @@
 //      The number of events to buffer in internal and external channels. This permits the producer to
 //      continue processing some messages in the background while user code is working, greatly improving
 //      throughput (default 256).
+//
+// bps.NewPublisher supports `kafka` + `kafka+sync` schemes and the following query parameters:
+//
 //   acks
 //      The number of acks required before considering a request complete. When acks=0, the producer will
 //      not wait for any acknowledgment. When acks=1 the leader will write the record to its local log but
@@ -42,21 +46,24 @@ package kafka
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net/url"
 
 	"github.com/Shopify/sarama"
 	"github.com/bsm/bps"
+	"golang.org/x/sync/errgroup"
 )
 
 func init() {
 	bps.RegisterPublisher("kafka", func(ctx context.Context, u *url.URL) (bps.Publisher, error) {
-		config := parseQuery(u.Query())
+		config := parseProducerQuery(u.Query())
 		config.Producer.Return.Errors = false
 		return NewPublisher(parseAddrs(u), config)
 	})
 
 	bps.RegisterPublisher("kafka+sync", func(ctx context.Context, u *url.URL) (bps.Publisher, error) {
-		config := parseQuery(u.Query())
+		config := parseProducerQuery(u.Query())
 		config.Producer.Return.Successes = true
 		return NewSyncPublisher(parseAddrs(u), config)
 	})
@@ -167,4 +174,67 @@ func (t *topicSync) PublishBatch(ctx context.Context, batch []*bps.PubMessage) e
 		pmsgs[i] = convertMessage(t.name, msg)
 	}
 	return t.producer.SendMessages(pmsgs)
+}
+
+// --------------------------------------------------------------------
+
+// Subscriber wraps a kafka consumer and implements the bps.Subscriber interface.
+// It starts consuming from the newest offset (so from message, received after connecting to kafka).
+type Subscriber struct {
+	consumer sarama.Consumer
+}
+
+// NewSubscriber inits a new subscriber.
+func NewSubscriber(addrs []string, config *sarama.Config) (*Subscriber, error) {
+	// TODO: do this on bps.Register:
+	// config.Consumer.Return.Errors = false // TODO: it would be actually nice to log these somehow
+	consumer, err := sarama.NewConsumer(addrs, config)
+	if err != nil {
+		return nil, err
+	}
+	return &Subscriber{consumer: consumer}, nil
+}
+
+// Subscribe implements the bps.Subscriber interface.
+func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Handler) error {
+	parts, err := s.consumer.Partitions(topic)
+	if err != nil {
+		return fmt.Errorf("get %s partitions: %w", topic, err)
+	}
+
+	group, ctx := errgroup.WithContext(ctx)
+	for _, part := range parts {
+		group.Go(func() error {
+			csm, err := s.consumer.ConsumePartition(topic, part, sarama.OffsetNewest)
+			if err != nil {
+				return fmt.Errorf("consume %s/%d partition: %w", topic, part, err)
+			}
+			defer csm.Close()
+
+			for {
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+
+				case msg, more := <-csm.Messages():
+					if !more {
+						return nil
+					}
+					// TODO: should we bother with locking/channeling messages for handler?
+					//       Or just demand bps.Handler to be thread safe?
+					if err := handler.Handle(bps.RawSubMessage(msg.Value)); errors.Is(err, bps.Done) {
+						return nil
+					} else if err != nil {
+						return err
+					}
+				}
+			}
+		})
+	}
+	return group.Wait()
+}
+
+// Close implements the bps.Subscriber interface.
+func (s *Subscriber) Close() error {
+	return s.consumer.Close()
 }

@@ -22,7 +22,7 @@ func parseAddrs(u *url.URL) []string {
 	return []string{addr}
 }
 
-func parseQuery(query url.Values) *sarama.Config {
+func parseCommonQuery(query url.Values) *sarama.Config {
 	config := sarama.NewConfig()
 	config.ClientID = "bps-client"
 
@@ -39,6 +39,12 @@ func parseQuery(query url.Values) *sarama.Config {
 	if v := query.Get("channel.buffer.size"); v != "" {
 		config.ChannelBufferSize, _ = strconv.Atoi(v)
 	}
+
+	return config
+}
+
+func parseProducerQuery(query url.Values) *sarama.Config {
+	config := parseCommonQuery(query)
 
 	if v := query.Get("acks"); v != "" {
 		if v == "all" {
@@ -90,6 +96,14 @@ func parseQuery(query url.Values) *sarama.Config {
 	if v := query.Get("retry.backoff"); v != "" {
 		config.Producer.Retry.Backoff, _ = time.ParseDuration(v)
 	}
+
+	return config
+}
+
+func parseConsumerQuery(query url.Values) *sarama.Config {
+	config := parseCommonQuery(query)
+
+	// TODO: defaults seem fine, should we make it fully configurable for initial release?
 
 	return config
 }

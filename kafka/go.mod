@@ -17,5 +17,6 @@ require (
 	github.com/pierrec/lz4 v2.3.0+incompatible // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563 // indirect
 	golang.org/x/crypto v0.0.0-20191002192127-34f69633bfdc // indirect
+	golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f
 	gopkg.in/jcmturner/gokrb5.v7 v7.3.0 // indirect
 )
