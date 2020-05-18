@@ -147,6 +147,6 @@ func (s *InMemSubscriber) shiftMessage(topic string) (SubMessage, bool) {
 func (s *InMemSubscriber) Close() error {
 	s.mu.Lock()
 	s.msgs = nil
-	defer s.mu.Unlock()
+	s.mu.Unlock()
 	return nil
 }
