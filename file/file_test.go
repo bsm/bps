@@ -9,10 +9,12 @@ import (
 	"testing"
 
 	"github.com/bsm/bps"
-	_ "github.com/bsm/bps/file"
 	"github.com/bsm/bps/internal/lint"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	_ "github.com/bsm/bps/file"
 )
 
 var _ = Describe("Publisher", func() {
@@ -23,6 +25,7 @@ var _ = Describe("Publisher", func() {
 	BeforeEach(func() {
 		var err error
 		dir, err = ioutil.TempDir("", "bps-file-test")
+		Expect(err).NotTo(HaveOccurred())
 
 		subject, err = bps.NewPublisher(ctx, "file://"+dir)
 		Expect(err).NotTo(HaveOccurred())
@@ -66,6 +69,54 @@ var _ = Describe("Publisher", func() {
 		})
 
 		lint.Publisher(&shared)
+	})
+})
+
+var _ = Describe("Subscriber", func() {
+	var subject bps.Subscriber
+	var ctx = context.Background()
+	var dir string
+
+	BeforeEach(func() {
+		var err error
+
+		dir, err = ioutil.TempDir("", "bps-file-test")
+		Expect(err).NotTo(HaveOccurred())
+
+		subject, err = bps.NewSubscriber(ctx, "file://"+dir)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		Expect(subject.Close()).To(Succeed())
+		Expect(os.RemoveAll(dir)).To(Succeed())
+	})
+
+	It("should init from URL", func() {
+		Expect(subject).NotTo(BeNil())
+	})
+
+	Context("lint", func() {
+		var shared lint.SubscriberInput
+
+		BeforeEach(func() {
+			shared = lint.SubscriberInput{
+				Subject: subject,
+				SeededMessages: []bps.SubMessage{
+					bps.RawSubMessage(`{"msg":1}`),
+					bps.RawSubMessage(`{"msg":2}`),
+				},
+				Setup: func(topic string) error {
+					return ioutil.WriteFile(filepath.Join(dir, topic), []byte(`
+						{"msg":1}
+						{"msg":2}
+					`), 0666)
+				},
+				// no need for Teardown as entire tmp dir will be removed
+			}
+		})
+
+		lint.Subcriber(&shared)
 	})
 })
 
