@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
 	"net/url"
 	"os"
 	"path"
@@ -133,8 +132,7 @@ func NewSubscriber(root string) bps.Subscriber {
 }
 
 func (s *fileSub) Subscribe(ctx context.Context, topic string, handler bps.Handler) error {
-	name := filepath.Join(s.root, topic)
-	f, err := os.Open(name)
+	f, err := os.Open(filepath.Join(s.root, topic))
 	if os.IsNotExist(err) {
 		return nil
 	} else if err != nil {
@@ -143,15 +141,13 @@ func (s *fileSub) Subscribe(ctx context.Context, topic string, handler bps.Handl
 	defer f.Close()
 
 	dec := json.NewDecoder(f)
-	for {
+	for dec.More() {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
 
 		var msg subMessage
-		if err := dec.Decode(&msg); errors.Is(err, io.EOF) {
-			break
-		} else if err != nil {
+		if err := dec.Decode(&msg); err != nil {
 			return err
 		}
 
