@@ -43,7 +43,7 @@ func Subscriber(input *SubscriberInput) {
 
 	ginkgo.It("should subscribe", func() {
 		Ω.Expect(subject.Subscribe(ctx, topic, handler)).To(Ω.Succeed())
-		Ω.Expect(extractDatas(handler.Received)).To(Ω.Equal([][]byte{
+		Ω.Expect(extractData(handler.Received)).To(Ω.Equal([][]byte{
 			[]byte("message-1"),
 			[]byte("message-2"),
 		}))
@@ -56,7 +56,7 @@ func Subscriber(input *SubscriberInput) {
 		Ω.Expect(subject.Subscribe(ctx, topic, handler)).To(Ω.Succeed())
 
 		// only first message handled - before error is returned:
-		Ω.Expect(extractDatas(handler.Received)).To(Ω.Equal([][]byte{
+		Ω.Expect(extractData(handler.Received)).To(Ω.Equal([][]byte{
 			[]byte("message-1"),
 		}))
 	})
@@ -71,7 +71,7 @@ func Subscriber(input *SubscriberInput) {
 		Ω.Expect(errors.Is(actualErr, expectedErr)).To(Ω.BeTrue())
 
 		// only first message handled - before error is returned:
-		Ω.Expect(extractDatas(handler.Received)).To(Ω.Equal([][]byte{
+		Ω.Expect(extractData(handler.Received)).To(Ω.Equal([][]byte{
 			[]byte("message-1"),
 		}))
 	})
@@ -86,7 +86,7 @@ func Subscriber(input *SubscriberInput) {
 		Ω.Expect(errors.Is(err, context.Canceled)).To(Ω.BeTrue())
 
 		// only first message handled - before context is cancelled:
-		Ω.Expect(extractDatas(handler.Received)).To(Ω.Equal([][]byte{
+		Ω.Expect(extractData(handler.Received)).To(Ω.Equal([][]byte{
 			[]byte("message-1"),
 		}))
 	})
@@ -111,10 +111,10 @@ func (h *mockHandler) Handle(msg bps.SubMessage) error {
 	return h.Err
 }
 
-func extractDatas(msgs []bps.SubMessage) [][]byte {
-	datas := make([][]byte, 0, len(msgs))
+func extractData(msgs []bps.SubMessage) [][]byte {
+	data := make([][]byte, 0, len(msgs))
 	for _, msg := range msgs {
-		datas = append(datas, msg.Data())
+		data = append(data, msg.Data())
 	}
-	return datas
+	return data
 }
