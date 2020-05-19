@@ -4,6 +4,7 @@ package file
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/url"
 	"os"
 	"path"
@@ -16,6 +17,9 @@ import (
 func init() {
 	bps.RegisterPublisher("file", func(_ context.Context, u *url.URL) (bps.Publisher, error) {
 		return NewPublisher(path.Join(u.Host, u.Path))
+	})
+	bps.RegisterSubscriber("file", func(_ context.Context, u *url.URL) (bps.Subscriber, error) {
+		return NewSubscriber(path.Join(u.Host, u.Path)), nil
 	})
 }
 
@@ -111,3 +115,55 @@ func (t *fileTopic) Close() error {
 	}
 	return nil
 }
+
+// --------------------------------------------------------------------
+
+type fileSub struct {
+	root string
+}
+
+// NewSubscriber inits a subscriber within a root directory.
+// It assumes, that file is not being written to anymore.
+// It iterates entire file (all records) without tracking processed messages.
+func NewSubscriber(root string) bps.Subscriber {
+	return &fileSub{
+		root: root,
+	}
+}
+
+func (s *fileSub) Subscribe(ctx context.Context, topic string, handler bps.Handler) error {
+	f, err := os.Open(filepath.Join(s.root, topic))
+	if os.IsNotExist(err) {
+		return nil
+	} else if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	dec := json.NewDecoder(f)
+	for dec.More() {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		var msg subMessage
+		if err := dec.Decode(&msg); err != nil {
+			return err
+		}
+
+		if err := handler.Handle(msg); errors.Is(err, bps.Done) {
+			break
+		} else if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *fileSub) Close() error {
+	return nil
+}
+
+type subMessage struct{ bps.PubMessage }
+
+func (m subMessage) Data() []byte { return m.PubMessage.Data }

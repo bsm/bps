@@ -9,10 +9,13 @@ import (
 	"testing"
 
 	"github.com/bsm/bps"
-	_ "github.com/bsm/bps/file"
+	"github.com/bsm/bps/file"
 	"github.com/bsm/bps/internal/lint"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	_ "github.com/bsm/bps/file"
 )
 
 var _ = Describe("Publisher", func() {
@@ -23,6 +26,7 @@ var _ = Describe("Publisher", func() {
 	BeforeEach(func() {
 		var err error
 		dir, err = ioutil.TempDir("", "bps-file-test")
+		Expect(err).NotTo(HaveOccurred())
 
 		subject, err = bps.NewPublisher(ctx, "file://"+dir)
 		Expect(err).NotTo(HaveOccurred())
@@ -69,9 +73,65 @@ var _ = Describe("Publisher", func() {
 	})
 })
 
+var _ = Describe("Subscriber", func() {
+	var subject bps.Subscriber
+	var ctx = context.Background()
+	var dir string
+
+	BeforeEach(func() {
+		var err error
+
+		dir, err = ioutil.TempDir("", "bps-file-test")
+		Expect(err).NotTo(HaveOccurred())
+
+		subject, err = bps.NewSubscriber(ctx, "file://"+dir)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		Expect(subject.Close()).To(Succeed())
+		Expect(os.RemoveAll(dir)).To(Succeed())
+	})
+
+	It("should init from URL", func() {
+		Expect(subject).NotTo(BeNil())
+	})
+
+	Context("lint", func() {
+		var shared lint.SubscriberInput
+
+		BeforeEach(func() {
+			shared = lint.SubscriberInput{
+				Subject: func(topic string, messages []bps.SubMessage) bps.Subscriber {
+					seedTopic(dir, topic, messages)
+					return subject
+				},
+			}
+		})
+
+		lint.Subscriber(&shared)
+	})
+})
+
 // ------------------------------------------------------------------------
 
 func TestSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "bps/file")
+}
+
+// ------------------------------------------------------------------------
+
+func seedTopic(dir, topic string, messages []bps.SubMessage) {
+	pub, err := file.NewPublisher(dir)
+	Expect(err).NotTo(HaveOccurred())
+	defer pub.Close()
+
+	pubMessages := make([]*bps.PubMessage, 0, len(messages))
+	for _, msg := range messages {
+		pubMessages = append(pubMessages, &bps.PubMessage{
+			Data: msg.Data(),
+		})
+	}
+	Expect(pub.Topic(topic).PublishBatch(context.Background(), pubMessages)).To(Succeed())
 }

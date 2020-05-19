@@ -2,6 +2,7 @@ package pubsub_test
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -11,9 +12,10 @@ import (
 	"github.com/bsm/bps"
 	"github.com/bsm/bps/internal/lint"
 	"github.com/bsm/bps/pubsub"
+	"google.golang.org/api/iterator"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"google.golang.org/api/iterator"
 )
 
 var _ = Describe("Publisher", func() {
@@ -74,7 +76,15 @@ func sandboxCheck() error {
 	if err != nil {
 		return err
 	}
-	return psc.Close()
+	defer psc.Close()
+
+	topic, err := psc.CreateTopic(ctx, fmt.Sprintf("bps-unittest-ping-%d", time.Now().UnixNano()))
+	if err != nil {
+		return err
+	}
+	defer topic.Delete(ctx)
+
+	return nil
 }
 
 func readMessages(topic string, max int) ([]*bps.PubMessage, error) {

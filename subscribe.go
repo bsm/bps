@@ -2,6 +2,7 @@ package bps
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"sync"
@@ -107,7 +108,7 @@ type InMemSubscriber struct {
 func NewInMemSubscriber(messagesByTopic map[string][]SubMessage) *InMemSubscriber {
 	byTopic := make(map[string][]SubMessage, len(messagesByTopic))
 	for topic, msgs := range messagesByTopic {
-		byTopic[topic] = append(make([]SubMessage, 0, len(msgs)), msgs...)
+		byTopic[topic] = msgs
 	}
 	return &InMemSubscriber{
 		msgs: byTopic,
@@ -127,7 +128,9 @@ func (s *InMemSubscriber) Subscribe(ctx context.Context, topic string, handler H
 			return nil
 		}
 
-		if err := handler.Handle(msg); err != nil {
+		if err := handler.Handle(msg); errors.Is(err, Done) {
+			return nil
+		} else if err != nil {
 			return err
 		}
 	}
