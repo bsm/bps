@@ -49,7 +49,7 @@ func Subscriber(input *SubscriberInput) {
 		go func() {
 			defer ginkgo.GinkgoRecover()
 
-			// no errors or context.Canceled expected:
+			// either no errors or context.Canceled (unsubscribed) expected:
 			if err := subject.Subscribe(ctx, topic, handler); err != nil {
 				Ω.Expect(err).To(Ω.MatchError(context.Canceled))
 			}
