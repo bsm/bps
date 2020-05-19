@@ -42,6 +42,14 @@
 //      The total number of times to retry sending a message (default 3).
 //   retry.backoff
 //      How long to wait for the cluster to settle between retries (default 100ms).
+//
+// bps.NewConsumer (`kafka://` scheme) supports:
+//
+//   offsets.initial
+//     Offset to start consuming from. Can be "oldest" (oldest available message)
+//     or "newest" (only new messages - produced after subscribing)
+//     or just numeric offset value.
+//
 package kafka
 
 import (
@@ -192,8 +200,6 @@ type Subscriber struct {
 
 // NewSubscriber inits a new subscriber.
 func NewSubscriber(addrs []string, config *sarama.Config) (*Subscriber, error) {
-	// TODO: do this on bps.Register:
-	// config.Consumer.Return.Errors = false // TODO: it would be actually nice to log these somehow
 	consumer, err := sarama.NewConsumer(addrs, config)
 	if err != nil {
 		return nil, err
@@ -244,6 +250,7 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Ha
 						return err
 					}
 
+					// TODO: would be nice to log errors as well:
 					// case err := <-csm.Errors():
 					// 	fmt.Printf("ERR %#v\n", err)
 				}
