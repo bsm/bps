@@ -67,6 +67,12 @@ func init() {
 		config.Producer.Return.Successes = true
 		return NewSyncPublisher(parseAddrs(u), config)
 	})
+
+	bps.RegisterSubscriber("kafka", func(ctx context.Context, u *url.URL) (bps.Subscriber, error) {
+		config := parseSubscriberQuery(u.Query())
+		config.Consumer.Return.Errors = false
+		return NewSubscriber(parseAddrs(u), config)
+	})
 }
 
 // --------------------------------------------------------------------
@@ -203,7 +209,8 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Ha
 	}
 
 	group, ctx := errgroup.WithContext(ctx)
-	for _, part := range parts {
+	for i := range parts {
+		part := parts[i]
 		group.Go(func() error {
 			csm, err := s.consumer.ConsumePartition(topic, part, sarama.OffsetNewest)
 			if err != nil {
@@ -211,12 +218,21 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Ha
 			}
 			defer csm.Close()
 
+			println(
+				"consuming",
+				"topic", topic,
+				"partition", part,
+				"HighWaterMarkOffset", csm.HighWaterMarkOffset(),
+			)
+
 			for {
 				select {
 				case <-ctx.Done():
+					println("DONE")
 					return ctx.Err()
 
 				case msg, more := <-csm.Messages():
+					println("MSG")
 					if !more {
 						return nil
 					}
@@ -227,6 +243,9 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Ha
 					} else if err != nil {
 						return err
 					}
+
+					// case err := <-csm.Errors():
+					// 	fmt.Printf("ERR %#v\n", err)
 				}
 			}
 		})

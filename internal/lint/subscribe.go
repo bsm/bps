@@ -22,7 +22,9 @@ type SubscriberInput struct {
 func Subscriber(input *SubscriberInput) {
 	var subject bps.Subscriber
 	var handler *mockHandler
-	var ctx = context.Background()
+
+	var ctx context.Context
+	var cancel context.CancelFunc
 
 	var (
 		topic        string
@@ -39,6 +41,13 @@ func Subscriber(input *SubscriberInput) {
 			bps.RawSubMessage("message-2"),
 		})
 		handler = &mockHandler{}
+
+		// give consumer only 1s per test:
+		ctx, cancel = context.WithTimeout(context.Background(), time.Second)
+	})
+
+	ginkgo.AfterEach(func() {
+		cancel()
 	})
 
 	ginkgo.It("should subscribe", func() {

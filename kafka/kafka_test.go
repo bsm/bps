@@ -10,6 +10,7 @@ import (
 	"github.com/bsm/bps"
 	"github.com/bsm/bps/internal/lint"
 	"github.com/bsm/bps/kafka"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -82,6 +83,41 @@ var _ = Describe("SyncPublisher", func() {
 	})
 })
 
+var _ = Describe("Subscriber", func() {
+	var subject *kafka.Subscriber
+	var _ bps.Subscriber = subject
+	var ctx = context.Background()
+
+	BeforeEach(func() {
+		pub, err := bps.NewSubscriber(ctx, "kafka://"+strings.Join(brokerAddrs, ",")+"?offsets.initial=oldest")
+		Expect(err).NotTo(HaveOccurred())
+		subject = pub.(*kafka.Subscriber)
+	})
+
+	AfterEach(func() {
+		Expect(subject.Close()).To(Succeed())
+	})
+
+	It("should init from URL", func() {
+		Expect(subject).NotTo(BeNil())
+	})
+
+	Context("lint", func() {
+		var shared lint.SubscriberInput
+
+		BeforeEach(func() {
+			shared = lint.SubscriberInput{
+				Subject: func(topic string, messages []bps.SubMessage) bps.Subscriber {
+					Expect(seedMessages(topic, messages)).To(Succeed())
+					return subject
+				},
+			}
+		})
+
+		lint.Subscriber(&shared)
+	})
+})
+
 // ------------------------------------------------------------------------
 
 func TestSuite(t *testing.T) {
@@ -136,4 +172,35 @@ func readPartition(msgs []*bps.PubMessage, pc sarama.PartitionConsumer) []*bps.P
 			return msgs
 		}
 	}
+}
+
+func seedMessages(topic string, messages []bps.SubMessage) error {
+	config := sarama.NewConfig()
+	config.Producer.RequiredAcks = sarama.WaitForAll
+	config.Producer.Return.Successes = true
+	config.Producer.Return.Errors = true
+
+	pr, err := sarama.NewSyncProducer(brokerAddrs, config)
+	if err != nil {
+		return err
+	}
+	defer pr.Close()
+
+	for _, msg := range messages {
+		part, off, err := pr.SendMessage(&sarama.ProducerMessage{
+			Topic: topic,
+			Value: sarama.ByteEncoder(msg.Data()),
+		})
+		if err != nil {
+			return err
+		}
+		println(
+			"seeded",
+			"topic", topic,
+			"partition", part,
+			"offset", off,
+			"data", string(msg.Data()),
+		)
+	}
+	return nil
 }
