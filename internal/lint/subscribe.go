@@ -37,8 +37,8 @@ func Subscriber(input *SubscriberInput) {
 		})
 		handler = &mockHandler{}
 
-		// give consumer only 1s per test:
-		ctx, cancel = context.WithTimeout(context.Background(), time.Second)
+		// give consumer max 5s per test:
+		ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 	})
 
 	ginkgo.AfterEach(func() {
