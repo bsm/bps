@@ -195,7 +195,8 @@ func (t *topicSync) PublishBatch(ctx context.Context, batch []*bps.PubMessage) e
 // Subscriber wraps a kafka consumer and implements the bps.Subscriber interface.
 // It starts consuming from the newest offset (so from message, received after connecting to kafka).
 type Subscriber struct {
-	consumer sarama.Consumer
+	consumer      sarama.Consumer
+	initialOffset int64
 }
 
 // NewSubscriber inits a new subscriber.
@@ -204,7 +205,10 @@ func NewSubscriber(addrs []string, config *sarama.Config) (*Subscriber, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Subscriber{consumer: consumer}, nil
+	return &Subscriber{
+		consumer:      consumer,
+		initialOffset: config.Consumer.Offsets.Initial,
+	}, nil
 }
 
 // Subscribe implements the bps.Subscriber interface.
@@ -218,27 +222,18 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Ha
 	for i := range parts {
 		part := parts[i]
 		group.Go(func() error {
-			csm, err := s.consumer.ConsumePartition(topic, part, sarama.OffsetNewest)
+			csm, err := s.consumer.ConsumePartition(topic, part, s.initialOffset)
 			if err != nil {
 				return fmt.Errorf("consume %s/%d partition: %w", topic, part, err)
 			}
 			defer csm.Close()
 
-			println(
-				"consuming",
-				"topic", topic,
-				"partition", part,
-				"HighWaterMarkOffset", csm.HighWaterMarkOffset(),
-			)
-
 			for {
 				select {
 				case <-ctx.Done():
-					println("DONE")
 					return ctx.Err()
 
 				case msg, more := <-csm.Messages():
-					println("MSG")
 					if !more {
 						return nil
 					}

@@ -187,20 +187,13 @@ func seedMessages(topic string, messages []bps.SubMessage) error {
 	defer pr.Close()
 
 	for _, msg := range messages {
-		part, off, err := pr.SendMessage(&sarama.ProducerMessage{
+		_, _, err := pr.SendMessage(&sarama.ProducerMessage{
 			Topic: topic,
 			Value: sarama.ByteEncoder(msg.Data()),
 		})
 		if err != nil {
 			return err
 		}
-		println(
-			"seeded",
-			"topic", topic,
-			"partition", part,
-			"offset", off,
-			"data", string(msg.Data()),
-		)
 	}
 	return nil
 }

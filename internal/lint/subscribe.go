@@ -51,7 +51,15 @@ func Subscriber(input *SubscriberInput) {
 	})
 
 	ginkgo.It("should subscribe", func() {
-		Ω.Expect(subject.Subscribe(ctx, topic, handler)).To(Ω.Succeed())
+		err := subject.Subscribe(ctx, topic, handler)
+
+		// subscriber implementations are allowed to:
+		// - either return immediately
+		// - or block until "unsubscribed" (deadline exceeded for this test suite)
+		if err != nil {
+			Ω.Expect(err).To(Ω.MatchError(context.DeadlineExceeded))
+		}
+
 		Ω.Expect(extractData(handler.Received)).To(Ω.Equal([][]byte{
 			[]byte("message-1"),
 			[]byte("message-2"),
@@ -62,7 +70,14 @@ func Subscriber(input *SubscriberInput) {
 		// allow error wrapping:
 		handler.Err = fmt.Errorf("wrapped %w", bps.Done)
 
-		Ω.Expect(subject.Subscribe(ctx, topic, handler)).To(Ω.Succeed())
+		err := subject.Subscribe(ctx, topic, handler)
+
+		// subscriber implementations are allowed to:
+		// - either return immediately
+		// - or block until "unsubscribed" (deadline exceeded for this test suite)
+		if err != nil {
+			Ω.Expect(err).To(Ω.MatchError(context.DeadlineExceeded))
+		}
 
 		// only first message handled - before error is returned:
 		Ω.Expect(extractData(handler.Received)).To(Ω.Equal([][]byte{
@@ -85,23 +100,16 @@ func Subscriber(input *SubscriberInput) {
 		}))
 	})
 
-	ginkgo.It("should stop when context is cancelled", func() {
-		cancellableCtx, cancel := context.WithCancel(ctx)
-		handler.AfterHandle = cancel
+	ginkgo.It("should do nothing for unknown topics", func() {
+		err := subject.Subscribe(ctx, unknownTopic, handler)
 
-		err := subject.Subscribe(cancellableCtx, topic, handler)
+		// subscriber implementations are allowed to:
+		// - either return immediately
+		// - or block until "unsubscribed" (deadline exceeded for this test suite)
+		if err != nil {
+			Ω.Expect(err).To(Ω.MatchError(context.DeadlineExceeded))
+		}
 
-		// allow error wrapping:
-		Ω.Expect(errors.Is(err, context.Canceled)).To(Ω.BeTrue())
-
-		// only first message handled - before context is cancelled:
-		Ω.Expect(extractData(handler.Received)).To(Ω.Equal([][]byte{
-			[]byte("message-1"),
-		}))
-	})
-
-	ginkgo.It("should do nothing for unknown topicss", func() {
-		Ω.Expect(subject.Subscribe(ctx, unknownTopic, handler)).To(Ω.Succeed())
 		Ω.Expect(handler.Received).To(Ω.BeEmpty())
 	})
 }
