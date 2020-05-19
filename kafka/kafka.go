@@ -239,20 +239,19 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Ha
 					}
 					// TODO: should we bother with locking/channeling messages for handler?
 					//       Or just demand bps.Handler to be thread safe?
-					if err := handler.Handle(bps.RawSubMessage(msg.Value)); errors.Is(err, bps.Done) {
-						return nil
-					} else if err != nil {
+					if err := handler.Handle(bps.RawSubMessage(msg.Value)); err != nil {
 						return err
 					}
-
-					// TODO: would be nice to log errors as well:
-					// case err := <-csm.Errors():
-					// 	fmt.Printf("ERR %#v\n", err)
 				}
 			}
 		})
 	}
-	return group.Wait()
+
+	err = group.Wait()
+	if errors.Is(err, bps.Done) {
+		return nil // bps.Done is not an error, but a signal to unsubscribe
+	}
+	return err
 }
 
 // Close implements the bps.Subscriber interface.

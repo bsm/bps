@@ -22,19 +22,14 @@ type SubscriberInput struct {
 func Subscriber(input *SubscriberInput) {
 	var subject bps.Subscriber
 	var handler *mockHandler
+	var topic string
 
 	var ctx context.Context
 	var cancel context.CancelFunc
 
-	var (
-		topic        string
-		unknownTopic string
-	)
-
 	ginkgo.BeforeEach(func() {
 		cycle := time.Now().UnixNano()
 		topic = fmt.Sprintf("bps-unittest-topic-%d-a", cycle)
-		unknownTopic = fmt.Sprintf("bps-unittest-topic-%d-unknown", cycle)
 
 		subject = input.Subject(topic, []bps.SubMessage{
 			bps.RawSubMessage("message-1"),
@@ -51,35 +46,32 @@ func Subscriber(input *SubscriberInput) {
 	})
 
 	ginkgo.It("should subscribe", func() {
-		err := subject.Subscribe(ctx, topic, handler)
+		go func() {
+			defer ginkgo.GinkgoRecover()
 
-		// subscriber implementations are allowed to:
-		// - either return immediately
-		// - or block until "unsubscribed" (deadline exceeded for this test suite)
-		if err != nil {
-			Ω.Expect(err).To(Ω.MatchError(context.DeadlineExceeded))
-		}
+			// no errors or context.Canceled expected:
+			if err := subject.Subscribe(ctx, topic, handler); err != nil {
+				Ω.Expect(err).To(Ω.MatchError(context.Canceled))
+			}
+		}()
 
-		Ω.Expect(extractData(handler.Received)).To(Ω.Equal([][]byte{
+		Ω.Eventually(func() interface{} {
+			return extractData(handler.Received)
+		}).Should((Ω.Equal([][]byte{
 			[]byte("message-1"),
 			[]byte("message-2"),
-		}))
+		})))
+
+		cancel() // "unsubscribe" as soon as messages are received
 	})
 
 	ginkgo.It("should stop on bps.Done", func() {
 		// allow error wrapping:
 		handler.Err = fmt.Errorf("wrapped %w", bps.Done)
 
-		err := subject.Subscribe(ctx, topic, handler)
+		Ω.Expect(subject.Subscribe(ctx, topic, handler)).To(Ω.Succeed())
 
-		// subscriber implementations are allowed to:
-		// - either return immediately
-		// - or block until "unsubscribed" (deadline exceeded for this test suite)
-		if err != nil {
-			Ω.Expect(err).To(Ω.MatchError(context.DeadlineExceeded))
-		}
-
-		// only first message handled - before error is returned:
+		// only first message handled before error is returned:
 		Ω.Expect(extractData(handler.Received)).To(Ω.Equal([][]byte{
 			[]byte("message-1"),
 		}))
@@ -98,19 +90,6 @@ func Subscriber(input *SubscriberInput) {
 		Ω.Expect(extractData(handler.Received)).To(Ω.Equal([][]byte{
 			[]byte("message-1"),
 		}))
-	})
-
-	ginkgo.It("should do nothing for unknown topics", func() {
-		err := subject.Subscribe(ctx, unknownTopic, handler)
-
-		// subscriber implementations are allowed to:
-		// - either return immediately
-		// - or block until "unsubscribed" (deadline exceeded for this test suite)
-		if err != nil {
-			Ω.Expect(err).To(Ω.MatchError(context.DeadlineExceeded))
-		}
-
-		Ω.Expect(handler.Received).To(Ω.BeEmpty())
 	})
 }
 
