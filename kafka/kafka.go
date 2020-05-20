@@ -1,5 +1,8 @@
 // Package kafka provides a Kafka abstraction through github.com/Shopify/sarama.
 //
+// WARNING: there's no message ack-ing done by Subscriber, so no automatic resuming from last-processed message.
+// Subscribing is done only from oldest-known or newest or manually-specified numeric offset.
+//
 // Both bps.NewPublisher (`kafka` + `kafka+sync` schemes) and bps.NewConsumer (`kafka` scheme)
 // support the following query parameters:
 //
