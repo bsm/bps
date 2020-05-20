@@ -16,6 +16,8 @@ require (
 	github.com/onsi/gomega v1.7.0
 	github.com/pierrec/lz4 v2.3.0+incompatible // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563 // indirect
+	go.uber.org/multierr v1.5.0
 	golang.org/x/crypto v0.0.0-20191002192127-34f69633bfdc // indirect
+	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	gopkg.in/jcmturner/gokrb5.v7 v7.3.0 // indirect
 )

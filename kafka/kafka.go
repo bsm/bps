@@ -1,6 +1,10 @@
 // Package kafka provides a Kafka abstraction through github.com/Shopify/sarama.
 //
-// bps.NewPublisher supports `kafka` + `kafka+sync` schemes and the following query parameters:
+// WARNING: there's no message ack-ing done by Subscriber, so no automatic resuming from last-processed message.
+// Subscribing is done only from oldest-known or newest or manually-specified numeric offset.
+//
+// Both bps.NewPublisher (`kafka` + `kafka+sync` schemes) and bps.NewConsumer (`kafka` scheme)
+// support the following query parameters:
 //
 //   client.id
 //      A user-provided string sent with every request to the brokers for logging debugging, and auditing
@@ -11,6 +15,9 @@
 //      The number of events to buffer in internal and external channels. This permits the producer to
 //      continue processing some messages in the background while user code is working, greatly improving
 //      throughput (default 256).
+//
+// bps.NewPublisher supports `kafka` + `kafka+sync` schemes and the following query parameters:
+//
 //   acks
 //      The number of acks required before considering a request complete. When acks=0, the producer will
 //      not wait for any acknowledgment. When acks=1 the leader will write the record to its local log but
@@ -38,27 +45,45 @@
 //      The total number of times to retry sending a message (default 3).
 //   retry.backoff
 //      How long to wait for the cluster to settle between retries (default 100ms).
+//
+// bps.NewConsumer (`kafka://` scheme) supports:
+//
+//   offsets.initial
+//     Offset to start consuming from. Can be "oldest" (oldest available message)
+//     or "newest" (only new messages - produced after subscribing)
+//     or just numeric offset value.
+//
 package kafka
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net/url"
 
 	"github.com/Shopify/sarama"
 	"github.com/bsm/bps"
+	"go.uber.org/multierr"
+	"golang.org/x/sync/errgroup"
 )
 
 func init() {
 	bps.RegisterPublisher("kafka", func(ctx context.Context, u *url.URL) (bps.Publisher, error) {
-		config := parseQuery(u.Query())
+		config := parseProducerQuery(u.Query())
 		config.Producer.Return.Errors = false
 		return NewPublisher(parseAddrs(u), config)
 	})
 
 	bps.RegisterPublisher("kafka+sync", func(ctx context.Context, u *url.URL) (bps.Publisher, error) {
-		config := parseQuery(u.Query())
+		config := parseProducerQuery(u.Query())
 		config.Producer.Return.Successes = true
 		return NewSyncPublisher(parseAddrs(u), config)
+	})
+
+	bps.RegisterSubscriber("kafka", func(ctx context.Context, u *url.URL) (bps.Subscriber, error) {
+		config := parseSubscriberQuery(u.Query())
+		config.Consumer.Return.Errors = false
+		return NewSubscriber(parseAddrs(u), config)
 	})
 }
 
@@ -167,4 +192,103 @@ func (t *topicSync) PublishBatch(ctx context.Context, batch []*bps.PubMessage) e
 		pmsgs[i] = convertMessage(t.name, msg)
 	}
 	return t.producer.SendMessages(pmsgs)
+}
+
+// --------------------------------------------------------------------
+
+// Subscriber wraps a kafka consumer and implements the bps.Subscriber interface.
+// It starts consuming from the newest offset (so from message, received after connecting to kafka).
+type Subscriber struct {
+	consumer      sarama.Consumer
+	initialOffset int64
+}
+
+// NewSubscriber inits a new subscriber.
+func NewSubscriber(addrs []string, config *sarama.Config) (*Subscriber, error) {
+	consumer, err := sarama.NewConsumer(addrs, config)
+	if err != nil {
+		return nil, err
+	}
+	return &Subscriber{
+		consumer:      consumer,
+		initialOffset: config.Consumer.Offsets.Initial,
+	}, nil
+}
+
+// Subscribe implements the bps.Subscriber interface.
+func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Handler) error {
+	// get partitions before spawning anything to do less cleanup on failure:
+	partitions, err := s.consumer.Partitions(topic)
+	if err != nil {
+		return fmt.Errorf("get %s partitions: %w", topic, err)
+	}
+
+	// cancelable ctx to signal background partition-consuming goroutines to exit:
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// multiplexed messages channel to call handler sequentially:
+	messages := make(chan bps.SubMessage)
+	defer close(messages)
+
+	// spawn/manage partition-consuming goroutines:
+	consumers, ctx := errgroup.WithContext(ctx)
+	for _, partition := range partitions {
+		partition := partition // https://golang.org/doc/faq#closures_and_goroutines
+
+		consumers.Go(func() error {
+			pc, err := s.consumer.ConsumePartition(topic, partition, s.initialOffset)
+			if err != nil {
+				return fmt.Errorf("consume %s/%d partition: %w", topic, partition, err)
+			}
+			defer pc.Close()
+
+			for {
+				select {
+				case <-ctx.Done():
+					return nil // no errors caused by THIS goroutine
+
+				case msg, more := <-pc.Messages():
+					if !more {
+						return bps.Done // normal exit
+					}
+					select {
+					case messages <- bps.RawSubMessage(msg.Value):
+					case <-ctx.Done():
+						return nil // no errors, this `case` may/will be reached only if multiplexed `messages` are not handled anymore
+					}
+				}
+			}
+		})
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return convertDoneErr(consumers.Wait())
+
+		case msg := <-messages:
+			if err := handler.Handle(msg); err != nil {
+				cancel() // signal background goroutines to exit
+				return multierr.Combine(
+					convertDoneErr(err),
+					convertDoneErr(consumers.Wait()),
+				)
+			}
+		}
+	}
+}
+
+// Close implements the bps.Subscriber interface.
+func (s *Subscriber) Close() error {
+	return s.consumer.Close()
+}
+
+// convertDoneErr suppresses `bps.Done` error,
+// as it is used to indicate success.
+func convertDoneErr(err error) error {
+	if errors.Is(err, bps.Done) {
+		return nil
+	}
+	return err
 }

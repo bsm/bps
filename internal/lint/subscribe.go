@@ -22,31 +22,47 @@ type SubscriberInput struct {
 func Subscriber(input *SubscriberInput) {
 	var subject bps.Subscriber
 	var handler *mockHandler
-	var ctx = context.Background()
+	var topic string
 
-	var (
-		topic        string
-		unknownTopic string
-	)
+	var ctx context.Context
+	var cancel context.CancelFunc
 
 	ginkgo.BeforeEach(func() {
 		cycle := time.Now().UnixNano()
 		topic = fmt.Sprintf("bps-unittest-topic-%d-a", cycle)
-		unknownTopic = fmt.Sprintf("bps-unittest-topic-%d-unknown", cycle)
 
 		subject = input.Subject(topic, []bps.SubMessage{
 			bps.RawSubMessage("message-1"),
 			bps.RawSubMessage("message-2"),
 		})
 		handler = &mockHandler{}
+
+		// give consumer max 5s per test:
+		ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+	})
+
+	ginkgo.AfterEach(func() {
+		cancel()
 	})
 
 	ginkgo.It("should subscribe", func() {
-		Ω.Expect(subject.Subscribe(ctx, topic, handler)).To(Ω.Succeed())
-		Ω.Expect(extractData(handler.Received)).To(Ω.Equal([][]byte{
+		go func() {
+			defer ginkgo.GinkgoRecover()
+
+			Ω.Expect(subject.Subscribe(ctx, topic, handler)).To(Ω.Or(
+				Ω.Succeed(),
+				Ω.MatchError(context.Canceled),
+			))
+		}()
+
+		Ω.Eventually(func() interface{} {
+			return extractData(handler.Received)
+		}).Should((Ω.ConsistOf([][]byte{
 			[]byte("message-1"),
 			[]byte("message-2"),
-		}))
+		})))
+
+		cancel() // "unsubscribe" as soon as messages are received
 	})
 
 	ginkgo.It("should stop on bps.Done", func() {
@@ -55,10 +71,8 @@ func Subscriber(input *SubscriberInput) {
 
 		Ω.Expect(subject.Subscribe(ctx, topic, handler)).To(Ω.Succeed())
 
-		// only first message handled - before error is returned:
-		Ω.Expect(extractData(handler.Received)).To(Ω.Equal([][]byte{
-			[]byte("message-1"),
-		}))
+		// only one (first received) message handled before error is returned:
+		Ω.Expect(extractData(handler.Received)).To(Ω.HaveLen(1))
 	})
 
 	ginkgo.It("should return handler error", func() {
@@ -70,44 +84,18 @@ func Subscriber(input *SubscriberInput) {
 		// allow error wrapping:
 		Ω.Expect(errors.Is(actualErr, expectedErr)).To(Ω.BeTrue())
 
-		// only first message handled - before error is returned:
-		Ω.Expect(extractData(handler.Received)).To(Ω.Equal([][]byte{
-			[]byte("message-1"),
-		}))
-	})
-
-	ginkgo.It("should stop when context is cancelled", func() {
-		cancellableCtx, cancel := context.WithCancel(ctx)
-		handler.AfterHandle = cancel
-
-		err := subject.Subscribe(cancellableCtx, topic, handler)
-
-		// allow error wrapping:
-		Ω.Expect(errors.Is(err, context.Canceled)).To(Ω.BeTrue())
-
-		// only first message handled - before context is cancelled:
-		Ω.Expect(extractData(handler.Received)).To(Ω.Equal([][]byte{
-			[]byte("message-1"),
-		}))
-	})
-
-	ginkgo.It("should do nothing for unknown topicss", func() {
-		Ω.Expect(subject.Subscribe(ctx, unknownTopic, handler)).To(Ω.Succeed())
-		Ω.Expect(handler.Received).To(Ω.BeEmpty())
+		// only one (first received) message handled - before error is returned:
+		Ω.Expect(extractData(handler.Received)).To(Ω.HaveLen(1))
 	})
 }
 
 type mockHandler struct {
-	Err         error  // error to return after handling (first) message
-	AfterHandle func() // after message handled callback
-	Received    []bps.SubMessage
+	Err      error // error to return after handling (first) message
+	Received []bps.SubMessage
 }
 
 func (h *mockHandler) Handle(msg bps.SubMessage) error {
 	h.Received = append(h.Received, msg)
-	if cb := h.AfterHandle; cb != nil {
-		cb()
-	}
 	return h.Err
 }
 
