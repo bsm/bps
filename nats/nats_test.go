@@ -19,7 +19,7 @@ import (
 const (
 	// clusterID holds (default) nats-streaming cluster ID: https://hub.docker.com/_/nats-streaming
 	clusterID = "test-cluster"
-	stanURL   = "nats://localhost:4222/" + clusterID + "?start_at=first&max_in_flight=1"
+	stanURL   = "nats://localhost:4222/" + clusterID + "?start_at=first"
 )
 
 var _ = Describe("Publisher", func() {

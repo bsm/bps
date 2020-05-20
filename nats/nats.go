@@ -14,9 +14,6 @@
 //   start_at
 //     new_only - consume messages, published after subscription
 //     first - consume from first/oldest available message
-//   max_in_flight
-//     Controls the number of messages the cluster will have inflight without an ACK.
-//     Default: stan.DefaultMaxInflight (1024 as of current version).
 //
 package nats
 
@@ -25,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -37,13 +33,10 @@ import (
 
 func init() {
 	bps.RegisterPublisher("nats", func(ctx context.Context, u *url.URL) (bps.Publisher, error) {
-		// clusterID, clientID, opts, subOpts := parseConnectionParams(u)
-		// return NewConn(clusterID, clientID, opts, subOpts)
 		return NewConn(parseConnectionParams(u))
 	})
 	bps.RegisterSubscriber("nats", func(ctx context.Context, u *url.URL) (bps.Subscriber, error) {
-		clusterID, clientID, opts, subOpts := parseConnectionParams(u)
-		return NewConn(clusterID, clientID, opts, subOpts)
+		return NewConn(parseConnectionParams(u))
 	})
 }
 
@@ -192,11 +185,6 @@ func parseConnectionParams(u *url.URL) (
 		subOpts = append(subOpts, stan.StartAt(pb.StartPosition_NewOnly))
 	case "first":
 		subOpts = append(subOpts, stan.StartAt(pb.StartPosition_First))
-	}
-
-	if v := q.Get("max_in_flight"); v != "" {
-		n, _ := strconv.Atoi(v)
-		subOpts = append(subOpts, stan.MaxInflight(n))
 	}
 
 	return
