@@ -57,7 +57,7 @@ func Subscriber(input *SubscriberInput) {
 
 		Ω.Eventually(func() interface{} {
 			return extractData(handler.Received)
-		}).Should((Ω.Equal([][]byte{
+		}).Should((Ω.ConsistOf([][]byte{
 			[]byte("message-1"),
 			[]byte("message-2"),
 		})))
@@ -71,10 +71,8 @@ func Subscriber(input *SubscriberInput) {
 
 		Ω.Expect(subject.Subscribe(ctx, topic, handler)).To(Ω.Succeed())
 
-		// only first message handled before error is returned:
-		Ω.Expect(extractData(handler.Received)).To(Ω.Equal([][]byte{
-			[]byte("message-1"),
-		}))
+		// only one (first received) message handled before error is returned:
+		Ω.Expect(extractData(handler.Received)).To(Ω.HaveLen(1))
 	})
 
 	ginkgo.It("should return handler error", func() {
@@ -86,10 +84,8 @@ func Subscriber(input *SubscriberInput) {
 		// allow error wrapping:
 		Ω.Expect(errors.Is(actualErr, expectedErr)).To(Ω.BeTrue())
 
-		// only first message handled - before error is returned:
-		Ω.Expect(extractData(handler.Received)).To(Ω.Equal([][]byte{
-			[]byte("message-1"),
-		}))
+		// only one (first received) message handled - before error is returned:
+		Ω.Expect(extractData(handler.Received)).To(Ω.HaveLen(1))
 	})
 }
 
