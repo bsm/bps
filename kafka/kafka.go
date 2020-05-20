@@ -60,6 +60,7 @@ import (
 
 	"github.com/Shopify/sarama"
 	"github.com/bsm/bps"
+	"go.uber.org/multierr"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -213,48 +214,78 @@ func NewSubscriber(addrs []string, config *sarama.Config) (*Subscriber, error) {
 
 // Subscribe implements the bps.Subscriber interface.
 func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Handler) error {
-	parts, err := s.consumer.Partitions(topic)
+	// get partitions before spawning anything to do less cleanup on failure:
+	partitions, err := s.consumer.Partitions(topic)
 	if err != nil {
 		return fmt.Errorf("get %s partitions: %w", topic, err)
 	}
 
-	group, ctx := errgroup.WithContext(ctx)
-	for i := range parts {
-		part := parts[i]
-		group.Go(func() error {
-			csm, err := s.consumer.ConsumePartition(topic, part, s.initialOffset)
+	// cancelable ctx to signal background partition-consuming goroutines to exit:
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// multiplexed messages channel to call handler sequentially:
+	messages := make(chan bps.SubMessage)
+	defer close(messages)
+
+	// spawn/manage partition-consuming goroutines:
+	consumers, ctx := errgroup.WithContext(ctx)
+	for _, partition := range partitions {
+		partition := partition // https://golang.org/doc/faq#closures_and_goroutines
+
+		consumers.Go(func() error {
+			pc, err := s.consumer.ConsumePartition(topic, partition, s.initialOffset)
 			if err != nil {
-				return fmt.Errorf("consume %s/%d partition: %w", topic, part, err)
+				return fmt.Errorf("consume %s/%d partition: %w", topic, partition, err)
 			}
-			defer csm.Close()
+			defer pc.Close()
 
 			for {
 				select {
 				case <-ctx.Done():
-					return ctx.Err()
+					return nil // no errors caused by THIS goroutine
 
-				case msg, more := <-csm.Messages():
+				case msg, more := <-pc.Messages():
 					if !more {
-						return nil
+						return bps.Done // normal exit
 					}
-					// TODO: should we bother with locking/channeling messages for handler?
-					//       Or just demand bps.Handler to be thread safe?
-					if err := handler.Handle(bps.RawSubMessage(msg.Value)); err != nil {
-						return err
+					select {
+					case messages <- bps.RawSubMessage(msg.Value):
+					case <-ctx.Done():
+						return nil // no errors, this `case` may/will be reached only if multiplexed `messages` are not handled anymore
 					}
 				}
 			}
 		})
 	}
 
-	err = group.Wait()
-	if errors.Is(err, bps.Done) {
-		return nil // bps.Done is not an error, but a signal to unsubscribe
+	for {
+		select {
+		case <-ctx.Done():
+			return convertDoneErr(consumers.Wait())
+
+		case msg := <-messages:
+			if err := handler.Handle(msg); err != nil {
+				cancel() // signal background goroutines to exit
+				return multierr.Combine(
+					convertDoneErr(err),
+					convertDoneErr(consumers.Wait()),
+				)
+			}
+		}
 	}
-	return err
 }
 
 // Close implements the bps.Subscriber interface.
 func (s *Subscriber) Close() error {
 	return s.consumer.Close()
+}
+
+// convertDoneErr suppresses `bps.Done` error,
+// as it is used to indicate success.
+func convertDoneErr(err error) error {
+	if errors.Is(err, bps.Done) {
+		return nil
+	}
+	return err
 }
