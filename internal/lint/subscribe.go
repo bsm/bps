@@ -49,10 +49,10 @@ func Subscriber(input *SubscriberInput) {
 		go func() {
 			defer ginkgo.GinkgoRecover()
 
-			// either no errors or context.Canceled (unsubscribed) expected:
-			if err := subject.Subscribe(ctx, topic, handler); err != nil {
-				Ω.Expect(err).To(Ω.MatchError(context.Canceled))
-			}
+			Ω.Expect(subject.Subscribe(ctx, topic, handler)).To(Ω.Or(
+				Ω.Succeed(),
+				Ω.MatchError(context.Canceled),
+			))
 		}()
 
 		Ω.Eventually(func() interface{} {
@@ -94,16 +94,12 @@ func Subscriber(input *SubscriberInput) {
 }
 
 type mockHandler struct {
-	Err         error  // error to return after handling (first) message
-	AfterHandle func() // after message handled callback
-	Received    []bps.SubMessage
+	Err      error // error to return after handling (first) message
+	Received []bps.SubMessage
 }
 
 func (h *mockHandler) Handle(msg bps.SubMessage) error {
 	h.Received = append(h.Received, msg)
-	if cb := h.AfterHandle; cb != nil {
-		cb()
-	}
 	return h.Err
 }
 
