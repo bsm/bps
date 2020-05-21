@@ -18,6 +18,8 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/nats-io/stan.go/pb"
+
 	"github.com/bsm/bps"
 	"github.com/nats-io/stan.go"
 )
@@ -65,7 +67,19 @@ func (c *conn) Topic(name string) bps.Topic {
 }
 
 // Subscribe subscribes to topic messages.
-func (c *conn) Subscribe(ctx context.Context, topic string, handler bps.Handler) error {
+func (c *conn) Subscribe(ctx context.Context, topic string, handler bps.Handler, options ...bps.SubOption) error {
+	opts := bps.NewSubOptions(options)
+
+	var startPos pb.StartPosition
+	switch opts.Start {
+	case bps.Newest:
+		startPos = pb.StartPosition_NewOnly
+	case bps.Oldest:
+		startPos = pb.StartPosition_First
+	default:
+		return fmt.Errorf("start option %d is not supported by this implementation", opts.Start)
+	}
+
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -109,8 +123,8 @@ func (c *conn) Subscribe(ctx context.Context, topic string, handler bps.Handler)
 				return
 			}
 		},
-		stan.SetManualAckMode(),    // force manual ack mode, it's handled by this impl
-		stan.DeliverAllAvailable(), // TODO: make it configurable (initial offset = oldest/newest; DeliverAllAvailable -> oldest)
+		stan.SetManualAckMode(), // force manual ack mode, it's handled by this impl
+		stan.StartAt(startPos),
 	)
 	if err != nil {
 		return err

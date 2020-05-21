@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/url"
 	"os"
 	"path"
@@ -131,7 +132,15 @@ func NewSubscriber(root string) bps.Subscriber {
 	}
 }
 
-func (s *fileSub) Subscribe(ctx context.Context, topic string, handler bps.Handler) error {
+func (s *fileSub) Subscribe(ctx context.Context, topic string, handler bps.Handler, options ...bps.SubOption) error {
+	opts := bps.NewSubOptions(options)
+
+	switch opts.Start {
+	case bps.Oldest: // supported, default/only
+	default:
+		return fmt.Errorf("start option %d is not supported by this implementation", opts.Start)
+	}
+
 	f, err := os.Open(filepath.Join(s.root, topic))
 	if os.IsNotExist(err) {
 		return nil

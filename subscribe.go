@@ -38,6 +38,8 @@ func (m RawSubMessage) Data() []byte {
 	return m
 }
 
+// ----------------------------------------------------------------------------
+
 // Handler defines a message handler.
 // Consuming can be stopped by returning bps.Done.
 type Handler interface {
@@ -54,10 +56,57 @@ func (f HandlerFunc) Handle(msg SubMessage) error {
 
 // ----------------------------------------------------------------------------
 
+// SubStart defines starting position to consume messages.
+type SubStart int
+
+// SubStart options.
+const (
+	Newest SubStart = iota
+	Oldest
+)
+
+// SubOptions holds subscription options.
+type SubOptions struct {
+	// Start defines starting position to consume messages.
+	// Default: SubscriptionNewest
+	Start SubStart
+}
+
+// NewSubOptions builds SubOptions.
+//
+// It is meant to be used by pubsub implementations:
+//
+//   func (s *SubImpl) Subscribe(..., options ...bps.SubOption) error {
+//     opts := bps.NewSubOptions(options)
+//     ...
+//   }
+//
+func NewSubOptions(opts []SubOption) *SubOptions {
+	o := &SubOptions{
+		Start: Newest,
+	}
+	for _, opt := range opts {
+		opt(o)
+	}
+	return o
+}
+
+// SubOption defines a single subscription option.
+type SubOption func(*SubOptions)
+
+// Start configures subscription start position.
+func Start(start SubStart) SubOption {
+	return func(o *SubOptions) {
+		o.Start = start
+	}
+}
+
+// ----------------------------------------------------------------------------
+
 // Subscriber defines the main subscriber interface.
 type Subscriber interface {
 	// Subscribe subscribes for topic messages and blocks till context is cancelled or error occurs or bps.Done is returned.
-	Subscribe(ctx context.Context, topic string, handler Handler) error
+	Subscribe(ctx context.Context, topic string, handler Handler, opts ...SubOption) error
 	// Close closes the subscriber connection.
 	Close() error
 }
@@ -65,6 +114,7 @@ type Subscriber interface {
 // NewSubscriber inits to a subscriber via URL.
 //
 //   sub, err := bps.NewSubscriber(context.TODO(), "kafka://10.0.0.1:9092,10.0.0.2:9092,10.0.0.3:9092/namespace")
+//
 func NewSubscriber(ctx context.Context, urlStr string) (Subscriber, error) {
 	u, err := url.Parse(urlStr)
 	if err != nil {
@@ -116,7 +166,15 @@ func NewInMemSubscriber(messagesByTopic map[string][]SubMessage) *InMemSubscribe
 }
 
 // Subscribe subscribes to in-memory messages by topic.
-func (s *InMemSubscriber) Subscribe(ctx context.Context, topic string, handler Handler) error {
+func (s *InMemSubscriber) Subscribe(ctx context.Context, topic string, handler Handler, options ...SubOption) error {
+	opts := NewSubOptions(options)
+
+	switch opts.Start {
+	case Oldest: // supported, default/only
+	default:
+		return fmt.Errorf("start option %d is not supported by this implementation", opts.Start)
+	}
+
 	for {
 		// check ctx/cancel BEFORE shift-ing each message:
 		if err := ctx.Err(); err != nil {

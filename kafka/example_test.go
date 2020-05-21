@@ -22,7 +22,7 @@ func ExamplePublisher() {
 
 func ExampleSubscriber() {
 	ctx := context.TODO()
-	sub, err := bps.NewSubscriber(ctx, "kafka://10.0.0.1:9092,10.0.0.2:9092,10.0.0.3:9092/?client.id=my-client&kafka.version=2.3.0&channel.buffer.size=1024&offsets.initial=oldest")
+	sub, err := bps.NewSubscriber(ctx, "kafka://10.0.0.1:9092,10.0.0.2:9092,10.0.0.3:9092/?client.id=my-client&kafka.version=2.3.0&channel.buffer.size=1024")
 	if err != nil {
 		panic(err.Error())
 	}
@@ -33,10 +33,15 @@ func ExampleSubscriber() {
 	defer cancel()
 
 	// will block till context is cancelled or handler returns error:
-	err = sub.Subscribe(ctx, "topic", bps.HandlerFunc(func(msg bps.SubMessage) error {
-		_, _ = fmt.Printf("%s\n", string(msg.Data()))
-		return nil // or bps.Done to unsubscribe
-	}))
+	err = sub.Subscribe(
+		ctx,
+		"topic",
+		bps.HandlerFunc(func(msg bps.SubMessage) error {
+			_, _ = fmt.Printf("%s\n", string(msg.Data()))
+			return nil // or bps.Done to unsubscribe
+		}),
+		bps.Start(bps.Oldest),
+	)
 	if err != nil {
 		panic(err.Error())
 	}

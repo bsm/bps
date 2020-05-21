@@ -199,8 +199,7 @@ func (t *topicSync) PublishBatch(ctx context.Context, batch []*bps.PubMessage) e
 // Subscriber wraps a kafka consumer and implements the bps.Subscriber interface.
 // It starts consuming from the newest offset (so from message, received after connecting to kafka).
 type Subscriber struct {
-	consumer      sarama.Consumer
-	initialOffset int64
+	consumer sarama.Consumer
 }
 
 // NewSubscriber inits a new subscriber.
@@ -209,14 +208,23 @@ func NewSubscriber(addrs []string, config *sarama.Config) (*Subscriber, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Subscriber{
-		consumer:      consumer,
-		initialOffset: config.Consumer.Offsets.Initial,
-	}, nil
+	return &Subscriber{consumer: consumer}, nil
 }
 
 // Subscribe implements the bps.Subscriber interface.
-func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Handler) error {
+func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Handler, options ...bps.SubOption) error {
+	opts := bps.NewSubOptions(options)
+
+	var initialOffset int64
+	switch opts.Start {
+	case bps.Newest:
+		initialOffset = sarama.OffsetNewest
+	case bps.Oldest:
+		initialOffset = sarama.OffsetOldest
+	default:
+		return fmt.Errorf("start option %d is not supported by this implementation", opts.Start)
+	}
+
 	// get partitions before spawning anything to do less cleanup on failure:
 	partitions, err := s.consumer.Partitions(topic)
 	if err != nil {
@@ -237,7 +245,7 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Ha
 		partition := partition // https://golang.org/doc/faq#closures_and_goroutines
 
 		consumers.Go(func() error {
-			pc, err := s.consumer.ConsumePartition(topic, partition, s.initialOffset)
+			pc, err := s.consumer.ConsumePartition(topic, partition, initialOffset)
 			if err != nil {
 				return fmt.Errorf("consume %s/%d partition: %w", topic, partition, err)
 			}
