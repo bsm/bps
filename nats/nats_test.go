@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/bsm/bps"
 	"github.com/bsm/bps/internal/lint"
@@ -28,7 +27,7 @@ var _ = Describe("Publisher", func() {
 
 	BeforeEach(func() {
 		var err error
-		subject, err = bps.NewPublisher(ctx, fmt.Sprintf("%s?client_id=%s", stanURL, genClientID()))
+		subject, err = bps.NewPublisher(ctx, fmt.Sprintf("%s?client_id=%s", stanURL, bps.GenClientID()))
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -61,7 +60,7 @@ var _ = Describe("Subscriber", func() {
 
 	BeforeEach(func() {
 		var err error
-		subject, err = bps.NewSubscriber(ctx, fmt.Sprintf("%s?client_id=%s", stanURL, genClientID()))
+		subject, err = bps.NewSubscriber(ctx, fmt.Sprintf("%s?client_id=%s", stanURL, bps.GenClientID()))
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -103,19 +102,15 @@ func TestSuite(t *testing.T) {
 }
 
 func sandboxCheck() error {
-	conn, err := stan.Connect(clusterID, genClientID())
+	conn, err := stan.Connect(clusterID, bps.GenClientID())
 	if err != nil {
 		return err
 	}
 	return conn.Close()
 }
 
-func genClientID() string {
-	return fmt.Sprintf("bps-unittest-%d", time.Now().UnixNano())
-}
-
 func readMessages(topic string, count int) ([]*bps.PubMessage, error) {
-	conn, err := stan.Connect(clusterID, genClientID())
+	conn, err := stan.Connect(clusterID, bps.GenClientID())
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +146,7 @@ func readMessages(topic string, count int) ([]*bps.PubMessage, error) {
 }
 
 func seedMessages(topic string, messages []bps.SubMessage) error {
-	conn, err := stan.Connect(clusterID, genClientID())
+	conn, err := stan.Connect(clusterID, bps.GenClientID())
 	if err != nil {
 		return err
 	}

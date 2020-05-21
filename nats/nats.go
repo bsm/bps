@@ -17,7 +17,6 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/bsm/bps"
 	"github.com/nats-io/stan.go"
@@ -156,7 +155,7 @@ func parseConnectionParams(u *url.URL) (
 	clusterID = strings.Trim(u.Path, "/")
 
 	if clientID = q.Get("client_id"); clientID == "" {
-		clientID = genClientID()
+		clientID = bps.GenClientID()
 	}
 
 	opts = append(opts, stan.NatsURL((&url.URL{
@@ -165,8 +164,4 @@ func parseConnectionParams(u *url.URL) (
 	}).String()))
 
 	return
-}
-
-func genClientID() string {
-	return fmt.Sprintf("bps-%d", time.Now().UnixNano())
 }
