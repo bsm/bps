@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/bsm/bps"
@@ -75,20 +74,12 @@ func (c *Conn) Subscribe(ctx context.Context, topic string, handler bps.Handler)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	// atomic flag to stop after first handler error returned;
-	// client received (buffers?) messages in background,
-	// may call handler after it returns error:
-	var done int32
-
 	var (
 		sub stan.Subscription
 		err error
 	)
 
 	stop := func(cause error) {
-		// stop after first handler error returned:
-		atomic.StoreInt32(&done, 1)
-
 		// cancel context to return from Subscribe:
 		cancel()
 
@@ -100,8 +91,11 @@ func (c *Conn) Subscribe(ctx context.Context, topic string, handler bps.Handler)
 
 	sub, err = c.stan.Subscribe(topic, func(msg *stan.Msg) {
 		// stop after first handler error returned:
-		if atomic.LoadInt32(&done) != 0 {
+		// stan.Conn may still call handler to process buffered (?) messages:
+		select {
+		case <-ctx.Done():
 			return
+		default:
 		}
 
 		if err := handler.Handle(bps.RawSubMessage(msg.Data)); errors.Is(err, bps.Done) {
