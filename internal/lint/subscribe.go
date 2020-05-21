@@ -16,6 +16,7 @@ import (
 type SubscriberInput struct {
 	// Subject should return a subject to be tested, with given topic/messages seeded.
 	// Caller should handle all the subject teardown/cleanup.
+	// Topics are guaranteed to be prefixed with "bps-unittest-".
 	Subject func(topic string, messages []bps.SubMessage) bps.Subscriber
 }
 

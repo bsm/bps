@@ -114,6 +114,7 @@ func StartAt(pos StartPosition) SubOption {
 // Subscriber defines the main subscriber interface.
 type Subscriber interface {
 	// Subscribe subscribes for topic messages and blocks till context is cancelled or error occurs or bps.Done is returned.
+	// Messages are guaranteed to be handled synchronously (handler is never called concurrently).
 	Subscribe(ctx context.Context, topic string, handler Handler, opts ...SubOption) error
 	// Close closes the subscriber connection.
 	Close() error
