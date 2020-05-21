@@ -43,6 +43,7 @@ func NewPublisher(stanClusterID, clientID string, opts []stan.Option) (bps.Publi
 }
 
 // NewSubscriber constructs a new nats.io-backed publisher.
+// By default, it starts handling from the newest available message (published after subscribing).
 func NewSubscriber(stanClusterID, clientID string, opts []stan.Option) (bps.Subscriber, error) {
 	return newConn(stanClusterID, clientID, opts)
 }
@@ -58,7 +59,6 @@ func newConn(stanClusterID, clientID string, opts []stan.Option) (*conn, error) 
 	}, nil
 }
 
-// Topic returns producer topic.
 func (c *conn) Topic(name string) bps.Topic {
 	return &topic{
 		stan: c.stan,
@@ -66,9 +66,10 @@ func (c *conn) Topic(name string) bps.Topic {
 	}
 }
 
-// Subscribe subscribes to topic messages.
 func (c *conn) Subscribe(ctx context.Context, topic string, handler bps.Handler, options ...bps.SubOption) error {
-	opts := bps.NewSubOptions(options)
+	opts := (&bps.SubOptions{
+		Start: bps.Newest,
+	}).Apply(options)
 
 	var startPos pb.StartPosition
 	switch opts.Start {
@@ -135,7 +136,6 @@ func (c *conn) Subscribe(ctx context.Context, topic string, handler bps.Handler,
 	return err
 }
 
-// Close terminates connection.
 func (c *conn) Close() error {
 	return c.stan.Close()
 }

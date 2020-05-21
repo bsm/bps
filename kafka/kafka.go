@@ -197,7 +197,6 @@ func (t *topicSync) PublishBatch(ctx context.Context, batch []*bps.PubMessage) e
 // --------------------------------------------------------------------
 
 // Subscriber wraps a kafka consumer and implements the bps.Subscriber interface.
-// It starts consuming from the newest offset (so from message, received after connecting to kafka).
 type Subscriber struct {
 	consumer sarama.Consumer
 }
@@ -212,8 +211,11 @@ func NewSubscriber(addrs []string, config *sarama.Config) (*Subscriber, error) {
 }
 
 // Subscribe implements the bps.Subscriber interface.
+// By default, it starts handling from the newest available message (published after subscribing).
 func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Handler, options ...bps.SubOption) error {
-	opts := bps.NewSubOptions(options)
+	opts := (&bps.SubOptions{
+		Start: bps.Newest,
+	}).Apply(options)
 
 	var initialOffset int64
 	switch opts.Start {

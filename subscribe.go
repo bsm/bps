@@ -61,31 +61,39 @@ type SubStart int
 
 // SubStart options.
 const (
+	// Newest tells to start consuming messages from the newest available
+	// (published AFTER subscribing).
 	Newest SubStart = iota
+
+	// Oldest tells to start consuming messages from the oldest available
+	// (published BEFORE subscribing).
 	Oldest
 )
 
 // SubOptions holds subscription options.
 type SubOptions struct {
 	// Start defines starting position to consume messages.
-	// Default: SubscriptionNewest
+	// May not be supported by some implementations.
+	// Default: implementation-specific (Newest is recommended).
 	Start SubStart
 }
 
-// NewSubOptions builds SubOptions.
+// Apply configures SubOptions struct by applying each single SubOption one by one.
 //
-// It is meant to be used by pubsub implementations:
+// It is meant to be used by pubsub implementations like this:
 //
 //   func (s *SubImpl) Subscribe(..., options ...bps.SubOption) error {
-//     opts := bps.NewSubOptions(options)
+//     opts := (&bps.SubOptions{
+//       // implementation-specific defaults
+//     }).Apply(options)
 //     ...
 //   }
 //
-func NewSubOptions(opts []SubOption) *SubOptions {
-	o := &SubOptions{
-		Start: Newest,
+func (o *SubOptions) Apply(options []SubOption) *SubOptions {
+	if o == nil {
+		o = new(SubOptions)
 	}
-	for _, opt := range opts {
+	for _, opt := range options {
 		opt(o)
 	}
 	return o
@@ -166,15 +174,8 @@ func NewInMemSubscriber(messagesByTopic map[string][]SubMessage) *InMemSubscribe
 }
 
 // Subscribe subscribes to in-memory messages by topic.
-func (s *InMemSubscriber) Subscribe(ctx context.Context, topic string, handler Handler, options ...SubOption) error {
-	opts := NewSubOptions(options)
-
-	switch opts.Start {
-	case Oldest: // supported, default/only
-	default:
-		return fmt.Errorf("start option %d is not supported by this implementation", opts.Start)
-	}
-
+// It starts handling from the first (oldest) available message.
+func (s *InMemSubscriber) Subscribe(ctx context.Context, topic string, handler Handler, _ ...SubOption) error {
 	for {
 		// check ctx/cancel BEFORE shift-ing each message:
 		if err := ctx.Err(); err != nil {
