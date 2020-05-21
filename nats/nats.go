@@ -18,10 +18,9 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/nats-io/stan.go/pb"
-
 	"github.com/bsm/bps"
 	"github.com/nats-io/stan.go"
+	"github.com/nats-io/stan.go/pb"
 )
 
 func init() {
