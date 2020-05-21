@@ -238,10 +238,10 @@ func seedMessages(topicName string, messages []bps.SubMessage) error {
 	defer topic.Stop()
 
 	for i, msg := range messages {
-		res := topic.Publish(ctx, &native.Message{
+		nativeMsg := &native.Message{
 			Data: msg.Data(),
-		})
-		if _, err := res.Get(ctx); err != nil {
+		}
+		if _, err := topic.Publish(ctx, nativeMsg).Get(ctx); err != nil {
 			return fmt.Errorf("failed to seed %d of %d", i, len(messages))
 		}
 	}
