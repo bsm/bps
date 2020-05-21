@@ -89,7 +89,7 @@ var _ = Describe("Subscriber", func() {
 	var ctx = context.Background()
 
 	BeforeEach(func() {
-		pub, err := bps.NewSubscriber(ctx, "kafka://"+strings.Join(brokerAddrs, ",")+"?offsets.initial=oldest")
+		pub, err := bps.NewSubscriber(ctx, "kafka://"+strings.Join(brokerAddrs, ","))
 		Expect(err).NotTo(HaveOccurred())
 		subject = pub.(*kafka.Subscriber)
 	})

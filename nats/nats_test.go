@@ -8,7 +8,6 @@ import (
 	"github.com/bsm/bps"
 	"github.com/bsm/bps/internal/lint"
 	"github.com/nats-io/stan.go"
-	"github.com/nats-io/stan.go/pb"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -130,7 +129,7 @@ func readMessages(topic string, count int) ([]*bps.PubMessage, error) {
 			default:
 			}
 		}
-	}, stan.StartAt(pb.StartPosition_First))
+	}, stan.DeliverAllAvailable())
 	if err != nil {
 		return nil, err
 	}

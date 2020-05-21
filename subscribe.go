@@ -38,6 +38,8 @@ func (m RawSubMessage) Data() []byte {
 	return m
 }
 
+// ----------------------------------------------------------------------------
+
 // Handler defines a message handler.
 // Consuming can be stopped by returning bps.Done.
 type Handler interface {
@@ -54,10 +56,65 @@ func (f HandlerFunc) Handle(msg SubMessage) error {
 
 // ----------------------------------------------------------------------------
 
+// StartPosition defines starting position to consume messages.
+type StartPosition string
+
+// StartPosition options.
+const (
+	// PositionNewest tells to start consuming messages from the newest available
+	// (published AFTER subscribing).
+	PositionNewest StartPosition = "newest"
+
+	// PositionOldest tells to start consuming messages from the oldest available
+	// (published BEFORE subscribing).
+	PositionOldest StartPosition = "oldest"
+)
+
+// SubOptions holds subscription options.
+type SubOptions struct {
+	// StartAt defines starting position to consume messages.
+	// May not be supported by some implementations.
+	// Default: implementation-specific (PositionNewest is recommended).
+	StartAt StartPosition
+}
+
+// Apply configures SubOptions struct by applying each single SubOption one by one.
+//
+// It is meant to be used by pubsub implementations like this:
+//
+//   func (s *SubImpl) Subscribe(..., options ...bps.SubOption) error {
+//     opts := (&bps.SubOptions{
+//       // implementation-specific defaults
+//     }).Apply(options)
+//     ...
+//   }
+//
+func (o *SubOptions) Apply(options []SubOption) *SubOptions {
+	if o == nil {
+		o = new(SubOptions)
+	}
+	for _, opt := range options {
+		opt(o)
+	}
+	return o
+}
+
+// SubOption defines a single subscription option.
+type SubOption func(*SubOptions)
+
+// StartAt configures subscription start position.
+func StartAt(pos StartPosition) SubOption {
+	return func(o *SubOptions) {
+		o.StartAt = pos
+	}
+}
+
+// ----------------------------------------------------------------------------
+
 // Subscriber defines the main subscriber interface.
 type Subscriber interface {
 	// Subscribe subscribes for topic messages and blocks till context is cancelled or error occurs or bps.Done is returned.
-	Subscribe(ctx context.Context, topic string, handler Handler) error
+	Subscribe(ctx context.Context, topic string, handler Handler, opts ...SubOption) error
 	// Close closes the subscriber connection.
 	Close() error
 }
@@ -65,6 +122,7 @@ type Subscriber interface {
 // NewSubscriber inits to a subscriber via URL.
 //
 //   sub, err := bps.NewSubscriber(context.TODO(), "kafka://10.0.0.1:9092,10.0.0.2:9092,10.0.0.3:9092/namespace")
+//
 func NewSubscriber(ctx context.Context, urlStr string) (Subscriber, error) {
 	u, err := url.Parse(urlStr)
 	if err != nil {
@@ -116,7 +174,8 @@ func NewInMemSubscriber(messagesByTopic map[string][]SubMessage) *InMemSubscribe
 }
 
 // Subscribe subscribes to in-memory messages by topic.
-func (s *InMemSubscriber) Subscribe(ctx context.Context, topic string, handler Handler) error {
+// It starts handling from the first (oldest) available message.
+func (s *InMemSubscriber) Subscribe(ctx context.Context, topic string, handler Handler, _ ...SubOption) error {
 	for {
 		// check ctx/cancel BEFORE shift-ing each message:
 		if err := ctx.Err(); err != nil {

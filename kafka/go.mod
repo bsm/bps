@@ -6,7 +6,7 @@ replace github.com/bsm/bps => ../
 
 require (
 	github.com/Shopify/sarama v1.24.0
-	github.com/bsm/bps v0.0.0-20190924074548-720a29804376
+	github.com/bsm/bps v0.0.0-00010101000000-000000000000
 	github.com/eapache/go-resiliency v1.2.0 // indirect
 	github.com/frankban/quicktest v1.5.0 // indirect
 	github.com/jcmturner/gofork v1.0.0 // indirect

@@ -102,20 +102,7 @@ func parseProducerQuery(query url.Values) *sarama.Config {
 
 func parseSubscriberQuery(query url.Values) *sarama.Config {
 	config := parseCommonQuery(query)
-
-	if v := query.Get("offsets.initial"); v != "" {
-		switch v {
-		case "newest":
-			config.Consumer.Offsets.Initial = sarama.OffsetNewest
-		case "oldest":
-			config.Consumer.Offsets.Initial = sarama.OffsetOldest
-		default:
-			config.Consumer.Offsets.Initial, _ = strconv.ParseInt(v, 10, 64)
-		}
-	}
-
-	// TODO: other defaults seem fine, should we make it fully configurable for initial release?
-
+	// consumer defaults seem fine, add only when needed
 	return config
 }
 

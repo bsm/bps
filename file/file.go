@@ -124,6 +124,7 @@ type fileSub struct {
 
 // NewSubscriber inits a subscriber within a root directory.
 // It assumes, that file is not being written to anymore.
+// It starts handling from the first (oldest) available message.
 // It iterates entire file (all records) without tracking processed messages.
 func NewSubscriber(root string) bps.Subscriber {
 	return &fileSub{
@@ -131,7 +132,7 @@ func NewSubscriber(root string) bps.Subscriber {
 	}
 }
 
-func (s *fileSub) Subscribe(ctx context.Context, topic string, handler bps.Handler) error {
+func (s *fileSub) Subscribe(ctx context.Context, topic string, handler bps.Handler, _ ...bps.SubOption) error {
 	f, err := os.Open(filepath.Join(s.root, topic))
 	if os.IsNotExist(err) {
 		return nil

@@ -20,6 +20,7 @@ import (
 
 	"github.com/bsm/bps"
 	"github.com/nats-io/stan.go"
+	"github.com/nats-io/stan.go/pb"
 )
 
 func init() {
@@ -41,6 +42,7 @@ func NewPublisher(stanClusterID, clientID string, opts []stan.Option) (bps.Publi
 }
 
 // NewSubscriber constructs a new nats.io-backed publisher.
+// By default, it starts handling from the newest available message (published after subscribing).
 func NewSubscriber(stanClusterID, clientID string, opts []stan.Option) (bps.Subscriber, error) {
 	return newConn(stanClusterID, clientID, opts)
 }
@@ -56,7 +58,6 @@ func newConn(stanClusterID, clientID string, opts []stan.Option) (*conn, error) 
 	}, nil
 }
 
-// Topic returns producer topic.
 func (c *conn) Topic(name string) bps.Topic {
 	return &topic{
 		stan: c.stan,
@@ -64,8 +65,21 @@ func (c *conn) Topic(name string) bps.Topic {
 	}
 }
 
-// Subscribe subscribes to topic messages.
-func (c *conn) Subscribe(ctx context.Context, topic string, handler bps.Handler) error {
+func (c *conn) Subscribe(ctx context.Context, topic string, handler bps.Handler, options ...bps.SubOption) error {
+	opts := (&bps.SubOptions{
+		StartAt: bps.PositionNewest,
+	}).Apply(options)
+
+	var startPos pb.StartPosition
+	switch opts.StartAt {
+	case bps.PositionNewest:
+		startPos = pb.StartPosition_NewOnly
+	case bps.PositionOldest:
+		startPos = pb.StartPosition_First
+	default:
+		return fmt.Errorf("start position %s is not supported by this implementation", opts.StartAt)
+	}
+
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -109,8 +123,8 @@ func (c *conn) Subscribe(ctx context.Context, topic string, handler bps.Handler)
 				return
 			}
 		},
-		stan.SetManualAckMode(),    // force manual ack mode, it's handled by this impl
-		stan.DeliverAllAvailable(), // TODO: make it configurable (initial offset = oldest/newest; DeliverAllAvailable -> oldest)
+		stan.SetManualAckMode(), // force manual ack mode, it's handled by this impl
+		stan.StartAt(startPos),
 	)
 	if err != nil {
 		return err
@@ -121,7 +135,6 @@ func (c *conn) Subscribe(ctx context.Context, topic string, handler bps.Handler)
 	return err
 }
 
-// Close terminates connection.
 func (c *conn) Close() error {
 	return c.stan.Close()
 }

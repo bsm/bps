@@ -197,10 +197,8 @@ func (t *topicSync) PublishBatch(ctx context.Context, batch []*bps.PubMessage) e
 // --------------------------------------------------------------------
 
 // Subscriber wraps a kafka consumer and implements the bps.Subscriber interface.
-// It starts consuming from the newest offset (so from message, received after connecting to kafka).
 type Subscriber struct {
-	consumer      sarama.Consumer
-	initialOffset int64
+	consumer sarama.Consumer
 }
 
 // NewSubscriber inits a new subscriber.
@@ -209,14 +207,26 @@ func NewSubscriber(addrs []string, config *sarama.Config) (*Subscriber, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Subscriber{
-		consumer:      consumer,
-		initialOffset: config.Consumer.Offsets.Initial,
-	}, nil
+	return &Subscriber{consumer: consumer}, nil
 }
 
 // Subscribe implements the bps.Subscriber interface.
-func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Handler) error {
+// By default, it starts handling from the newest available message (published after subscribing).
+func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Handler, options ...bps.SubOption) error {
+	opts := (&bps.SubOptions{
+		StartAt: bps.PositionNewest,
+	}).Apply(options)
+
+	var initialOffset int64
+	switch opts.StartAt {
+	case bps.PositionNewest:
+		initialOffset = sarama.OffsetNewest
+	case bps.PositionOldest:
+		initialOffset = sarama.OffsetOldest
+	default:
+		return fmt.Errorf("start position %s is not supported by this implementation", opts.StartAt)
+	}
+
 	// get partitions before spawning anything to do less cleanup on failure:
 	partitions, err := s.consumer.Partitions(topic)
 	if err != nil {
@@ -237,7 +247,7 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Ha
 		partition := partition // https://golang.org/doc/faq#closures_and_goroutines
 
 		consumers.Go(func() error {
-			pc, err := s.consumer.ConsumePartition(topic, partition, s.initialOffset)
+			pc, err := s.consumer.ConsumePartition(topic, partition, initialOffset)
 			if err != nil {
 				return fmt.Errorf("consume %s/%d partition: %w", topic, partition, err)
 			}
