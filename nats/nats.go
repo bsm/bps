@@ -65,8 +65,8 @@ func NewConn(stanClusterID, clientID string, opts []stan.Option, subOpts []stan.
 // Topic returns producer topic.
 func (c *Conn) Topic(name string) bps.Topic {
 	return &topic{
-		stan:    c.stan,
-		subject: name,
+		stan: c.stan,
+		name: name,
 	}
 }
 
@@ -135,15 +135,15 @@ func (c *Conn) Close() error {
 // ----------------------------------------------------------------------------
 
 type topic struct {
-	stan    stan.Conn
-	subject string
+	stan stan.Conn
+	name string
 }
 
 func (t *topic) Publish(ctx context.Context, msg *bps.PubMessage) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	return t.stan.Publish(t.subject, msg.Data)
+	return t.stan.Publish(t.name, msg.Data)
 }
 
 func (t *topic) PublishBatch(ctx context.Context, messages []*bps.PubMessage) error {
