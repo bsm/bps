@@ -224,7 +224,7 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Ha
 	case bps.PositionOldest:
 		initialOffset = sarama.OffsetOldest
 	default:
-		return fmt.Errorf("start position %d is not supported by this implementation", opts.StartAt)
+		return fmt.Errorf("start position %s is not supported by this implementation", opts.StartAt)
 	}
 
 	// get partitions before spawning anything to do less cleanup on failure:

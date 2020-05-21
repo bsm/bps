@@ -57,17 +57,17 @@ func (f HandlerFunc) Handle(msg SubMessage) error {
 // ----------------------------------------------------------------------------
 
 // StartPosition defines starting position to consume messages.
-type StartPosition int
+type StartPosition string
 
 // StartPosition options.
 const (
 	// PositionNewest tells to start consuming messages from the newest available
 	// (published AFTER subscribing).
-	PositionNewest StartPosition = iota
+	PositionNewest StartPosition = "newest"
 
 	// PositionOldest tells to start consuming messages from the oldest available
 	// (published BEFORE subscribing).
-	PositionOldest
+	PositionOldest StartPosition = "oldest"
 )
 
 // SubOptions holds subscription options.

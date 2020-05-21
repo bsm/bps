@@ -77,7 +77,7 @@ func (c *conn) Subscribe(ctx context.Context, topic string, handler bps.Handler,
 	case bps.PositionOldest:
 		startPos = pb.StartPosition_First
 	default:
-		return fmt.Errorf("start position %d is not supported by this implementation", opts.StartAt)
+		return fmt.Errorf("start position %s is not supported by this implementation", opts.StartAt)
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
