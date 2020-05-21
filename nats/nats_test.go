@@ -19,7 +19,7 @@ import (
 const (
 	// clusterID holds (default) nats-streaming cluster ID: https://hub.docker.com/_/nats-streaming
 	clusterID = "test-cluster"
-	stanURL   = "nats://localhost:4222/" + clusterID + "?start_at=first"
+	stanURL   = "nats://localhost:4222/" + clusterID
 )
 
 var _ = Describe("Publisher", func() {
@@ -28,7 +28,7 @@ var _ = Describe("Publisher", func() {
 
 	BeforeEach(func() {
 		var err error
-		subject, err = bps.NewPublisher(ctx, fmt.Sprintf("%s&%s", stanURL, genClientID()))
+		subject, err = bps.NewPublisher(ctx, fmt.Sprintf("%s?client_id=%s", stanURL, genClientID()))
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -61,7 +61,7 @@ var _ = Describe("Subscriber", func() {
 
 	BeforeEach(func() {
 		var err error
-		subject, err = bps.NewSubscriber(ctx, fmt.Sprintf("%s&%s", stanURL, genClientID()))
+		subject, err = bps.NewSubscriber(ctx, fmt.Sprintf("%s?client_id=%s", stanURL, genClientID()))
 		Expect(err).NotTo(HaveOccurred())
 	})
 
