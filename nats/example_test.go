@@ -1,4 +1,4 @@
-package kafka_test
+package nats_test
 
 import (
 	"context"
@@ -6,12 +6,12 @@ import (
 	"time"
 
 	"github.com/bsm/bps"
-	_ "github.com/bsm/bps/kafka"
+	_ "github.com/bsm/bps/nats"
 )
 
 func ExamplePublisher() {
 	ctx := context.TODO()
-	pub, err := bps.NewPublisher(ctx, "kafka://10.0.0.1:9092,10.0.0.2:9092,10.0.0.3:9092/?client.id=my-client&kafka.version=2.3.0&channel.buffer.size=1024")
+	pub, err := bps.NewPublisher(ctx, "nats://localhost:4222/?client_id=my_client")
 	if err != nil {
 		panic(err.Error())
 	}
@@ -22,7 +22,7 @@ func ExamplePublisher() {
 
 func ExampleSubscriber() {
 	ctx := context.TODO()
-	sub, err := bps.NewSubscriber(ctx, "kafka://10.0.0.1:9092,10.0.0.2:9092,10.0.0.3:9092/?client.id=my-client&kafka.version=2.3.0&channel.buffer.size=1024&offsets.initial=oldest")
+	sub, err := bps.NewSubscriber(ctx, "nats://localhost:4222/?client_id=my_client&start_at=first")
 	if err != nil {
 		panic(err.Error())
 	}

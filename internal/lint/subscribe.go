@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/bsm/bps"
@@ -55,14 +56,8 @@ func Subscriber(input *SubscriberInput) {
 			))
 		}()
 
-		Ω.Eventually(func() interface{} {
-			return extractData(handler.Received)
-		}).Should((Ω.ConsistOf([][]byte{
-			[]byte("message-1"),
-			[]byte("message-2"),
-		})))
-
-		cancel() // "unsubscribe" as soon as messages are received
+		Ω.Eventually(handler.Len).Should(Ω.Equal(2))
+		Ω.Expect(handler.Data()).To(Ω.ConsistOf("message-1", "message-2"))
 	})
 
 	ginkgo.It("should stop on bps.Done", func() {
@@ -72,7 +67,7 @@ func Subscriber(input *SubscriberInput) {
 		Ω.Expect(subject.Subscribe(ctx, topic, handler)).To(Ω.Succeed())
 
 		// only one (first received) message handled before error is returned:
-		Ω.Expect(extractData(handler.Received)).To(Ω.HaveLen(1))
+		Ω.Expect(handler.Len()).To(Ω.Equal(1))
 	})
 
 	ginkgo.It("should return handler error", func() {
@@ -85,24 +80,35 @@ func Subscriber(input *SubscriberInput) {
 		Ω.Expect(errors.Is(actualErr, expectedErr)).To(Ω.BeTrue())
 
 		// only one (first received) message handled - before error is returned:
-		Ω.Expect(extractData(handler.Received)).To(Ω.HaveLen(1))
+		Ω.Expect(handler.Len()).To(Ω.Equal(1))
 	})
 }
 
 type mockHandler struct {
-	Err      error // error to return after handling (first) message
-	Received []bps.SubMessage
+	mu   sync.RWMutex
+	data []string
+
+	Err error // error to return after handling (first) message
 }
 
 func (h *mockHandler) Handle(msg bps.SubMessage) error {
-	h.Received = append(h.Received, msg)
+	h.mu.Lock()
+	h.data = append(h.data, string(msg.Data()))
+	h.mu.Unlock()
+
 	return h.Err
 }
 
-func extractData(msgs []bps.SubMessage) [][]byte {
-	data := make([][]byte, 0, len(msgs))
-	for _, msg := range msgs {
-		data = append(data, msg.Data())
-	}
-	return data
+func (h *mockHandler) Data() []string {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	return h.data
+}
+
+func (h *mockHandler) Len() int {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	return len(h.data)
 }
