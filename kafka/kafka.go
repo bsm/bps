@@ -214,14 +214,14 @@ func NewSubscriber(addrs []string, config *sarama.Config) (*Subscriber, error) {
 // By default, it starts handling from the newest available message (published after subscribing).
 func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Handler, options ...bps.SubOption) error {
 	opts := (&bps.SubOptions{
-		StartAt: bps.Newest,
+		StartAt: bps.PositionNewest,
 	}).Apply(options)
 
 	var initialOffset int64
 	switch opts.StartAt {
-	case bps.Newest:
+	case bps.PositionNewest:
 		initialOffset = sarama.OffsetNewest
-	case bps.Oldest:
+	case bps.PositionOldest:
 		initialOffset = sarama.OffsetOldest
 	default:
 		return fmt.Errorf("start position %d is not supported by this implementation", opts.StartAt)

@@ -40,7 +40,7 @@ func ExampleSubscriber() {
 			_, _ = fmt.Printf("%s\n", string(msg.Data()))
 			return nil // or bps.Done to unsubscribe
 		}),
-		bps.StartAt(bps.Oldest),
+		bps.StartAt(bps.PositionOldest),
 	)
 	if err != nil {
 		panic(err.Error())

@@ -61,20 +61,20 @@ type StartPosition int
 
 // StartPosition options.
 const (
-	// Newest tells to start consuming messages from the newest available
+	// PositionNewest tells to start consuming messages from the newest available
 	// (published AFTER subscribing).
-	Newest StartPosition = iota
+	PositionNewest StartPosition = iota
 
-	// Oldest tells to start consuming messages from the oldest available
+	// PositionOldest tells to start consuming messages from the oldest available
 	// (published BEFORE subscribing).
-	Oldest
+	PositionOldest
 )
 
 // SubOptions holds subscription options.
 type SubOptions struct {
 	// StartAt defines starting position to consume messages.
 	// May not be supported by some implementations.
-	// Default: implementation-specific (Newest is recommended).
+	// Default: implementation-specific (PositionNewest is recommended).
 	StartAt StartPosition
 }
 

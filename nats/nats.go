@@ -67,14 +67,14 @@ func (c *conn) Topic(name string) bps.Topic {
 
 func (c *conn) Subscribe(ctx context.Context, topic string, handler bps.Handler, options ...bps.SubOption) error {
 	opts := (&bps.SubOptions{
-		StartAt: bps.Newest,
+		StartAt: bps.PositionNewest,
 	}).Apply(options)
 
 	var startPos pb.StartPosition
 	switch opts.StartAt {
-	case bps.Newest:
+	case bps.PositionNewest:
 		startPos = pb.StartPosition_NewOnly
-	case bps.Oldest:
+	case bps.PositionOldest:
 		startPos = pb.StartPosition_First
 	default:
 		return fmt.Errorf("start position %d is not supported by this implementation", opts.StartAt)
