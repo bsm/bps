@@ -24,32 +24,40 @@ import (
 
 func init() {
 	bps.RegisterPublisher("nats", func(ctx context.Context, u *url.URL) (bps.Publisher, error) {
-		return NewConn(parseConnectionParams(u))
+		return NewPublisher(parseConnectionParams(u))
 	})
 	bps.RegisterSubscriber("nats", func(ctx context.Context, u *url.URL) (bps.Subscriber, error) {
-		return NewConn(parseConnectionParams(u))
+		return NewSubscriber(parseConnectionParams(u))
 	})
 }
 
-// Conn is a wrapper for stan.Conn, that implements both bps.Publisher and bps.Subscriber interfaces.
-type Conn struct {
+type conn struct {
 	stan stan.Conn
 }
 
-// NewConn constructs a new nats.io-backed pub/sub connection.
-func NewConn(stanClusterID, clientID string, opts []stan.Option) (*Conn, error) {
+// NewPublisher constructs a new nats.io-backed publisher.
+func NewPublisher(stanClusterID, clientID string, opts []stan.Option) (bps.Publisher, error) {
+	return newConn(stanClusterID, clientID, opts)
+}
+
+// NewSubscriber constructs a new nats.io-backed publisher.
+func NewSubscriber(stanClusterID, clientID string, opts []stan.Option) (bps.Subscriber, error) {
+	return newConn(stanClusterID, clientID, opts)
+}
+
+func newConn(stanClusterID, clientID string, opts []stan.Option) (*conn, error) {
 	c, err := stan.Connect(stanClusterID, clientID, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Conn{
+	return &conn{
 		stan: c,
 	}, nil
 }
 
 // Topic returns producer topic.
-func (c *Conn) Topic(name string) bps.Topic {
+func (c *conn) Topic(name string) bps.Topic {
 	return &topic{
 		stan: c.stan,
 		name: name,
@@ -57,7 +65,7 @@ func (c *Conn) Topic(name string) bps.Topic {
 }
 
 // Subscribe subscribes to topic messages.
-func (c *Conn) Subscribe(ctx context.Context, topic string, handler bps.Handler) error {
+func (c *conn) Subscribe(ctx context.Context, topic string, handler bps.Handler) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -114,7 +122,7 @@ func (c *Conn) Subscribe(ctx context.Context, topic string, handler bps.Handler)
 }
 
 // Close terminates connection.
-func (c *Conn) Close() error {
+func (c *conn) Close() error {
 	return c.stan.Close()
 }
 

@@ -7,7 +7,6 @@ import (
 
 	"github.com/bsm/bps"
 	"github.com/bsm/bps/internal/lint"
-	"github.com/bsm/bps/nats"
 	"github.com/nats-io/stan.go"
 	"github.com/nats-io/stan.go/pb"
 
@@ -37,7 +36,6 @@ var _ = Describe("Publisher", func() {
 
 	It("should init from URL", func() {
 		Expect(subject).NotTo(BeNil())
-		Expect(subject).To(BeAssignableToTypeOf(&nats.Conn{}))
 	})
 
 	Context("lint", func() {
@@ -70,7 +68,6 @@ var _ = Describe("Subscriber", func() {
 
 	It("should init from URL", func() {
 		Expect(subject).NotTo(BeNil())
-		Expect(subject).To(BeAssignableToTypeOf(&nats.Conn{}))
 	})
 
 	Context("lint", func() {
