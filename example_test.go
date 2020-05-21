@@ -54,7 +54,7 @@ func ExampleSubscriber() {
 	})
 
 	// blocks till all the messages are consumed or error occurs:
-	err := sub.Subscribe(ctx, "foo", handler, bps.Start(bps.Oldest))
+	err := sub.Subscribe(ctx, "foo", handler)
 	if err != nil {
 		panic(err.Error())
 	}

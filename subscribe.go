@@ -56,14 +56,14 @@ func (f HandlerFunc) Handle(msg SubMessage) error {
 
 // ----------------------------------------------------------------------------
 
-// SubStart defines starting position to consume messages.
-type SubStart int
+// StartPosition defines starting position to consume messages.
+type StartPosition int
 
-// SubStart options.
+// StartPosition options.
 const (
 	// Newest tells to start consuming messages from the newest available
 	// (published AFTER subscribing).
-	Newest SubStart = iota
+	Newest StartPosition = iota
 
 	// Oldest tells to start consuming messages from the oldest available
 	// (published BEFORE subscribing).
@@ -72,10 +72,10 @@ const (
 
 // SubOptions holds subscription options.
 type SubOptions struct {
-	// Start defines starting position to consume messages.
+	// StartAt defines starting position to consume messages.
 	// May not be supported by some implementations.
 	// Default: implementation-specific (Newest is recommended).
-	Start SubStart
+	StartAt StartPosition
 }
 
 // Apply configures SubOptions struct by applying each single SubOption one by one.
@@ -102,10 +102,10 @@ func (o *SubOptions) Apply(options []SubOption) *SubOptions {
 // SubOption defines a single subscription option.
 type SubOption func(*SubOptions)
 
-// Start configures subscription start position.
-func Start(start SubStart) SubOption {
+// StartAt configures subscription start position.
+func StartAt(pos StartPosition) SubOption {
 	return func(o *SubOptions) {
-		o.Start = start
+		o.StartAt = pos
 	}
 }
 
