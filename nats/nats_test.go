@@ -114,7 +114,7 @@ func readMessages(topic string, count int) ([]*bps.PubMessage, error) {
 	defer conn.Close()
 
 	// closed when `count` messages are consumed:
-	var done = make(chan struct{})
+	var done = make(chan struct{}, 1)
 	defer close(done)
 
 	var msgs []*bps.PubMessage

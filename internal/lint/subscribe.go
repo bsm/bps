@@ -103,9 +103,7 @@ func (h *mockHandler) Data() []string {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
-	data := make([]string, len(h.data))
-	_ = copy(data, h.data)
-	return data
+	return h.data
 }
 
 func (h *mockHandler) Len() int {
