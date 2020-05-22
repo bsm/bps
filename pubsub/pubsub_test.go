@@ -54,6 +54,46 @@ var _ = Describe("Publisher", func() {
 	})
 })
 
+var _ = Describe("Subscriber", func() {
+	var subject *pubsub.Subscriber
+	var _ bps.Subscriber = subject
+	var ctx = context.Background()
+
+	BeforeEach(func() {
+		pub, err := bps.NewSubscriber(ctx, "pubsub://"+projectID)
+		Expect(err).NotTo(HaveOccurred())
+
+		subject = pub.(*pubsub.Subscriber)
+	})
+
+	AfterEach(func() {
+		Expect(subject.Close()).To(Succeed())
+
+		// wipes all the "bps-unittest-*" topics;
+		// subscriptions are expected to be deleted by Subscriber implementation itself:
+		Expect(teardownCB()).To(Succeed())
+	})
+
+	It("should init from URL", func() {
+		Expect(subject).NotTo(BeNil())
+	})
+
+	Context("lint", func() {
+		var shared lint.SubscriberInput
+
+		BeforeEach(func() {
+			shared = lint.SubscriberInput{
+				Subject: func(topic string, messages []bps.SubMessage) bps.Subscriber {
+					Expect(seedMessages(topic, messages)).To(Succeed())
+					return subject
+				},
+			}
+		})
+
+		lint.Subscriber(&shared)
+	})
+})
+
 // ------------------------------------------------------------------------
 
 const projectID = "bsm-tech"
@@ -164,19 +204,46 @@ func teardownCB(...string) error {
 	}
 
 	for it := psc.Subscriptions(ctx); true; {
-		t, err := it.Next()
+		s, err := it.Next()
 		if err == iterator.Done {
 			break
 		} else if err != nil {
 			return err
 		}
 
-		if strings.HasPrefix(t.ID(), "bps-unittest-") {
-			if err := t.Delete(ctx); err != nil {
+		if strings.HasPrefix(s.ID(), "bps-unittest-") {
+			if err := s.Delete(ctx); err != nil {
 				return err
 			}
 		}
 	}
 
+	return nil
+}
+
+func seedMessages(topicName string, messages []bps.SubMessage) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	client, err := native.NewClient(ctx, projectID)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	topic, err := client.CreateTopic(ctx, topicName)
+	if err != nil {
+		return err
+	}
+	defer topic.Stop()
+
+	for i, msg := range messages {
+		nativeMsg := &native.Message{
+			Data: msg.Data(),
+		}
+		if _, err := topic.Publish(ctx, nativeMsg).Get(ctx); err != nil {
+			return fmt.Errorf("failed to seed %d of %d", i, len(messages))
+		}
+	}
 	return nil
 }
