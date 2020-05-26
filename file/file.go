@@ -133,7 +133,7 @@ func NewSubscriber(root string) bps.Subscriber {
 }
 
 func (s *fileSub) Topic(name string) bps.SubTopic {
-	return NewSubTopic(filepath.Join(s.root, name))
+	return SubTopic(filepath.Join(s.root, name))
 }
 
 func (s *fileSub) Close() error {
@@ -142,20 +142,13 @@ func (s *fileSub) Close() error {
 
 // ----------------------------------------------------------------------------
 
-type subTopic struct {
-	filename string
-}
-
-// NewSubTopic inits a subscriber topic for given file name.
+// SubTopic is an adapter for filename, that behaves like bps.SubTopic.
 // Useful for testing.
-func NewSubTopic(filename string) bps.SubTopic {
-	return &subTopic{
-		filename: filename,
-	}
-}
+type SubTopic string
 
-func (t *subTopic) Subscribe(ctx context.Context, handler bps.Handler, _ ...bps.SubOption) error {
-	f, err := os.Open(t.filename)
+// Subscribe subscribes/consumes records from file.
+func (t SubTopic) Subscribe(ctx context.Context, handler bps.Handler, _ ...bps.SubOption) error {
+	f, err := os.Open(string(t))
 	if os.IsNotExist(err) {
 		return nil
 	} else if err != nil {
