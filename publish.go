@@ -59,13 +59,16 @@ func RegisterPublisher(scheme string, factory PublisherFactory) {
 
 // PubMessage represents a single message for publishing.
 type PubMessage struct {
-	// ID is a message identifier.
+	// ID is an optional message identifier.
+	// It may not be supported by some implementations (then it is ignored).
+	// Or may be used just to calculate partition the message.
 	ID string `json:"id,omitempty"`
 
 	// Data is the message payload.
 	Data []byte `json:"data,omitempty"`
 
-	// Attributes contains key-value labels.
+	// Attributes contains optional key-value labels.
+	// It may not be supported by some implementations (then it is ignored).
 	Attributes map[string]string `json:"attributes,omitempty"`
 }
 
