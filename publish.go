@@ -15,7 +15,7 @@ var (
 // Publisher defines the main publisher interface.
 type Publisher interface {
 	// Topic returns a topic handle by name.
-	Topic(name string) Topic
+	Topic(name string) PubTopic
 	// Close closes the producer connection.
 	Close() error
 }
@@ -59,21 +59,26 @@ func RegisterPublisher(scheme string, factory PublisherFactory) {
 
 // PubMessage represents a single message for publishing.
 type PubMessage struct {
-	// ID is a message identifier.
+	// ID is an optional message identifier.
+	// It may not be supported by some implementations (then it is ignored).
+	// Or may be used just to calculate partition the message.
 	ID string `json:"id,omitempty"`
 
 	// Data is the message payload.
 	Data []byte `json:"data,omitempty"`
 
-	// Attributes contains key-value labels.
+	// Attributes contains optional key-value labels.
+	// It may not be supported by some implementations (then it is ignored).
 	Attributes map[string]string `json:"attributes,omitempty"`
 }
 
-// Topic is a publisher handle to a topic.
-type Topic interface {
+// PubTopic is a publisher handle to a topic.
+type PubTopic interface {
 	// Publish publishes a message to the topic.
 	Publish(context.Context, *PubMessage) error
 	// PublishBatch publishes a batch of messages to the topic.
+	//
+	// TODO: kill it!
 	PublishBatch(context.Context, []*PubMessage) error
 }
 
@@ -81,19 +86,19 @@ type Topic interface {
 
 // InMemPublisher is an in-memory publisher implementation which can be used for tests.
 type InMemPublisher struct {
-	topics map[string]*InMemTopic
+	topics map[string]*InMemPubTopic
 	mu     sync.RWMutex
 }
 
 // NewInMemPublisher returns an initialised publisher.
 func NewInMemPublisher() *InMemPublisher {
 	return &InMemPublisher{
-		topics: make(map[string]*InMemTopic),
+		topics: make(map[string]*InMemPubTopic),
 	}
 }
 
 // Topic implements Publisher interface. It will auto-provision a topic if it does not exist.
-func (p *InMemPublisher) Topic(name string) Topic {
+func (p *InMemPublisher) Topic(name string) PubTopic {
 	p.mu.RLock()
 	topic, ok := p.topics[name]
 	p.mu.RUnlock()
@@ -106,7 +111,7 @@ func (p *InMemPublisher) Topic(name string) Topic {
 	defer p.mu.Unlock()
 
 	if topic, ok = p.topics[name]; !ok {
-		topic = new(InMemTopic)
+		topic = new(InMemPubTopic)
 		p.topics[name] = topic
 	}
 	return topic
@@ -117,15 +122,15 @@ func (*InMemPublisher) Close() error {
 	return nil
 }
 
-// InMemTopic is an in-memory implementation of a Topic.
+// InMemPubTopic is an in-memory implementation of a Topic.
 // Useful for tests.
-type InMemTopic struct {
+type InMemPubTopic struct {
 	messages []*PubMessage
 	mu       sync.RWMutex
 }
 
 // Publish implements Topic.
-func (t *InMemTopic) Publish(_ context.Context, msg *PubMessage) error {
+func (t *InMemPubTopic) Publish(_ context.Context, msg *PubMessage) error {
 	t.mu.Lock()
 	t.messages = append(t.messages, msg)
 	t.mu.Unlock()
@@ -133,7 +138,7 @@ func (t *InMemTopic) Publish(_ context.Context, msg *PubMessage) error {
 }
 
 // PublishBatch implements Topic.
-func (t *InMemTopic) PublishBatch(_ context.Context, batch []*PubMessage) error {
+func (t *InMemPubTopic) PublishBatch(_ context.Context, batch []*PubMessage) error {
 	t.mu.Lock()
 	t.messages = append(t.messages, batch...)
 	t.mu.Unlock()
@@ -141,7 +146,7 @@ func (t *InMemTopic) PublishBatch(_ context.Context, batch []*PubMessage) error 
 }
 
 // Messages returns published messages.
-func (t *InMemTopic) Messages() []*PubMessage {
+func (t *InMemPubTopic) Messages() []*PubMessage {
 	t.mu.RLock()
 	messages := t.messages
 	t.mu.RUnlock()

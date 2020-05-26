@@ -104,7 +104,7 @@ func NewPublisher(addrs []string, config *sarama.Config) (*Publisher, error) {
 }
 
 // Topic implements the bps.Publisher interface.
-func (p *Publisher) Topic(name string) bps.Topic {
+func (p *Publisher) Topic(name string) bps.PubTopic {
 	return &topicAsync{name: name, producer: p.producer}
 }
 
@@ -156,7 +156,7 @@ func NewSyncPublisher(addrs []string, config *sarama.Config) (*SyncPublisher, er
 }
 
 // Topic implements the bps.Publisher interface.
-func (p *SyncPublisher) Topic(name string) bps.Topic {
+func (p *SyncPublisher) Topic(name string) bps.PubTopic {
 	return &topicSync{name: name, producer: p.producer}
 }
 
@@ -202,6 +202,7 @@ type Subscriber struct {
 }
 
 // NewSubscriber inits a new subscriber.
+// By default, it starts handling from the newest available message (published after subscribing).
 func NewSubscriber(addrs []string, config *sarama.Config) (*Subscriber, error) {
 	consumer, err := sarama.NewConsumer(addrs, config)
 	if err != nil {
@@ -210,9 +211,27 @@ func NewSubscriber(addrs []string, config *sarama.Config) (*Subscriber, error) {
 	return &Subscriber{consumer: consumer}, nil
 }
 
-// Subscribe implements the bps.Subscriber interface.
-// By default, it starts handling from the newest available message (published after subscribing).
-func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Handler, options ...bps.SubOption) error {
+// Topic returns named topic handle.
+func (s *Subscriber) Topic(name string) bps.SubTopic {
+	return &subTopic{
+		consumer: s.consumer,
+		name:     name,
+	}
+}
+
+// Close implements the bps.Subscriber interface.
+func (s *Subscriber) Close() error {
+	return s.consumer.Close()
+}
+
+// ----------------------------------------------------------------------------
+
+type subTopic struct {
+	consumer sarama.Consumer
+	name     string
+}
+
+func (t *subTopic) Subscribe(ctx context.Context, handler bps.Handler, options ...bps.SubOption) error {
 	opts := (&bps.SubOptions{
 		StartAt: bps.PositionNewest,
 	}).Apply(options)
@@ -228,9 +247,9 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Ha
 	}
 
 	// get partitions before spawning anything to do less cleanup on failure:
-	partitions, err := s.consumer.Partitions(topic)
+	partitions, err := t.consumer.Partitions(t.name)
 	if err != nil {
-		return fmt.Errorf("get %s partitions: %w", topic, err)
+		return fmt.Errorf("get %s partitions: %w", t.name, err)
 	}
 
 	// cancelable ctx to signal background partition-consuming goroutines to exit:
@@ -247,9 +266,9 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Ha
 		partition := partition // https://golang.org/doc/faq#closures_and_goroutines
 
 		consumers.Go(func() error {
-			pc, err := s.consumer.ConsumePartition(topic, partition, initialOffset)
+			pc, err := t.consumer.ConsumePartition(t.name, partition, initialOffset)
 			if err != nil {
-				return fmt.Errorf("consume %s/%d partition: %w", topic, partition, err)
+				return fmt.Errorf("consume %s/%d partition: %w", t.name, partition, err)
 			}
 			defer pc.Close()
 
@@ -287,11 +306,6 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Ha
 			}
 		}
 	}
-}
-
-// Close implements the bps.Subscriber interface.
-func (s *Subscriber) Close() error {
-	return s.consumer.Close()
 }
 
 // convertDoneErr suppresses `bps.Done` error,

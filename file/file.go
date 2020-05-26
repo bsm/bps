@@ -40,7 +40,7 @@ func NewPublisher(root string) (bps.Publisher, error) {
 	return &filePub{root: root, topics: make(map[string]*fileTopic)}, nil
 }
 
-func (p *filePub) Topic(name string) bps.Topic {
+func (p *filePub) Topic(name string) bps.PubTopic {
 	p.mu.RLock()
 	topic, ok := p.topics[name]
 	p.mu.RUnlock()
@@ -132,8 +132,23 @@ func NewSubscriber(root string) bps.Subscriber {
 	}
 }
 
-func (s *fileSub) Subscribe(ctx context.Context, topic string, handler bps.Handler, _ ...bps.SubOption) error {
-	f, err := os.Open(filepath.Join(s.root, topic))
+func (s *fileSub) Topic(name string) bps.SubTopic {
+	return SubTopic(filepath.Join(s.root, name))
+}
+
+func (s *fileSub) Close() error {
+	return nil
+}
+
+// ----------------------------------------------------------------------------
+
+// SubTopic is an adapter for filename, that behaves like bps.SubTopic.
+// Useful for testing.
+type SubTopic string
+
+// Subscribe subscribes/consumes records from file.
+func (t SubTopic) Subscribe(ctx context.Context, handler bps.Handler, _ ...bps.SubOption) error {
+	f, err := os.Open(string(t))
 	if os.IsNotExist(err) {
 		return nil
 	} else if err != nil {
@@ -158,10 +173,6 @@ func (s *fileSub) Subscribe(ctx context.Context, topic string, handler bps.Handl
 			return err
 		}
 	}
-	return nil
-}
-
-func (s *fileSub) Close() error {
 	return nil
 }
 

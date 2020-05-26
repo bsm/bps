@@ -111,11 +111,17 @@ func StartAt(pos StartPosition) SubOption {
 
 // ----------------------------------------------------------------------------
 
-// Subscriber defines the main subscriber interface.
-type Subscriber interface {
+// SubTopic defines a subscriber topic handle.
+type SubTopic interface {
 	// Subscribe subscribes for topic messages and blocks till context is cancelled or error occurs or bps.Done is returned.
 	// Messages are guaranteed to be handled synchronously (handler is never called concurrently).
-	Subscribe(ctx context.Context, topic string, handler Handler, opts ...SubOption) error
+	Subscribe(ctx context.Context, handler Handler, opts ...SubOption) error
+}
+
+// Subscriber defines the main subscriber interface.
+type Subscriber interface {
+	// Topic returns a subscriber topic handle.
+	Topic(name string) SubTopic
 	// Close closes the subscriber connection.
 	Close() error
 }
@@ -169,21 +175,48 @@ func NewInMemSubscriber(messagesByTopic map[string][]SubMessage) *InMemSubscribe
 	for topic, msgs := range messagesByTopic {
 		byTopic[topic] = msgs
 	}
-	return &InMemSubscriber{
-		msgs: byTopic,
-	}
+	return &InMemSubscriber{msgs: byTopic}
+}
+
+// Topic returns named topic handle.
+// Seeded messages are copied for each topic handle
+func (s *InMemSubscriber) Topic(topic string) SubTopic {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return NewInMemSubTopic(s.msgs[topic])
+}
+
+// Close forgets seeded messages.
+func (s *InMemSubscriber) Close() error {
+	s.mu.Lock()
+	s.msgs = nil
+	s.mu.Unlock()
+	return nil
+}
+
+// InMemSubTopic is a subscriber topic handle, that consumes messages from seeded data.
+// It is useful mainly for testing.
+type InMemSubTopic struct {
+	mu   sync.Mutex
+	msgs []SubMessage
+}
+
+// NewInMemSubTopic returns new seeded in-memory subscriber topic handle.
+func NewInMemSubTopic(msgs []SubMessage) *InMemSubTopic {
+	return &InMemSubTopic{msgs: msgs}
 }
 
 // Subscribe subscribes to in-memory messages by topic.
 // It starts handling from the first (oldest) available message.
-func (s *InMemSubscriber) Subscribe(ctx context.Context, topic string, handler Handler, _ ...SubOption) error {
+func (s *InMemSubTopic) Subscribe(ctx context.Context, handler Handler, _ ...SubOption) error {
 	for {
 		// check ctx/cancel BEFORE shift-ing each message:
 		if err := ctx.Err(); err != nil {
 			return err
 		}
 
-		msg, ok := s.shiftMessage(topic)
+		msg, ok := s.shiftMessage()
 		if !ok {
 			return nil
 		}
@@ -196,24 +229,15 @@ func (s *InMemSubscriber) Subscribe(ctx context.Context, topic string, handler H
 	}
 }
 
-func (s *InMemSubscriber) shiftMessage(topic string) (SubMessage, bool) {
+func (s *InMemSubTopic) shiftMessage() (SubMessage, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	msgs := s.msgs[topic]
-
+	msgs := s.msgs
 	if len(msgs) == 0 {
 		return nil, false
 	}
 
-	s.msgs[topic] = msgs[1:]
+	s.msgs = msgs[1:]
 	return msgs[0], true
-}
-
-// Close forgets any pending messages.
-func (s *InMemSubscriber) Close() error {
-	s.mu.Lock()
-	s.msgs = nil
-	s.mu.Unlock()
-	return nil
 }

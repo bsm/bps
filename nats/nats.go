@@ -32,40 +32,90 @@ func init() {
 	})
 }
 
-type conn struct {
-	stan stan.Conn
+type publisher struct {
+	conn stan.Conn
 }
 
 // NewPublisher constructs a new nats.io-backed publisher.
 func NewPublisher(stanClusterID, clientID string, opts []stan.Option) (bps.Publisher, error) {
-	return newConn(stanClusterID, clientID, opts)
-}
-
-// NewSubscriber constructs a new nats.io-backed publisher.
-// By default, it starts handling from the newest available message (published after subscribing).
-func NewSubscriber(stanClusterID, clientID string, opts []stan.Option) (bps.Subscriber, error) {
-	return newConn(stanClusterID, clientID, opts)
-}
-
-func newConn(stanClusterID, clientID string, opts []stan.Option) (*conn, error) {
 	c, err := stan.Connect(stanClusterID, clientID, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	return &conn{
-		stan: c,
-	}, nil
+	return &publisher{conn: c}, nil
 }
 
-func (c *conn) Topic(name string) bps.Topic {
-	return &topic{
-		stan: c.stan,
+func (p *publisher) Topic(name string) bps.PubTopic {
+	return &pubTopic{
+		conn: p.conn,
 		name: name,
 	}
 }
 
-func (c *conn) Subscribe(ctx context.Context, topic string, handler bps.Handler, options ...bps.SubOption) error {
+func (p *publisher) Close() error {
+	return p.conn.Close()
+}
+
+// ----------------------------------------------------------------------------
+
+type pubTopic struct {
+	conn stan.Conn
+	name string
+}
+
+func (t *pubTopic) Publish(ctx context.Context, msg *bps.PubMessage) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	return t.conn.Publish(t.name, msg.Data)
+}
+
+func (t *pubTopic) PublishBatch(ctx context.Context, messages []*bps.PubMessage) error {
+	for i, msg := range messages {
+		if err := t.Publish(ctx, msg); err != nil {
+			return fmt.Errorf("publish %d of %d: %w", i, len(messages), err)
+		}
+	}
+	return nil
+}
+
+// ----------------------------------------------------------------------------
+
+type subscriber struct {
+	conn stan.Conn
+}
+
+// NewSubscriber constructs a new nats.io-backed publisher.
+// By default, it starts handling from the newest available message (published after subscribing).
+func NewSubscriber(stanClusterID, clientID string, opts []stan.Option) (bps.Subscriber, error) {
+	c, err := stan.Connect(stanClusterID, clientID, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	return &subscriber{conn: c}, nil
+}
+
+func (s *subscriber) Topic(name string) bps.SubTopic {
+	return &subTopic{
+		stan: s.conn,
+		name: name,
+	}
+}
+
+func (s *subscriber) Close() error {
+	return s.conn.Close()
+}
+
+// ----------------------------------------------------------------------------
+
+type subTopic struct {
+	stan stan.Conn
+	name string
+}
+
+func (t *subTopic) Subscribe(ctx context.Context, handler bps.Handler, options ...bps.SubOption) error {
 	opts := (&bps.SubOptions{
 		StartAt: bps.PositionNewest,
 	}).Apply(options)
@@ -98,8 +148,8 @@ func (c *conn) Subscribe(ctx context.Context, topic string, handler bps.Handler,
 		}
 	}
 
-	sub, err = c.stan.Subscribe(
-		topic,
+	sub, err = t.stan.Subscribe(
+		t.name,
 		func(msg *stan.Msg) {
 			// stop after first handler error returned:
 			// stan.Conn may still call handler to process buffered (?) messages:
@@ -133,33 +183,6 @@ func (c *conn) Subscribe(ctx context.Context, topic string, handler bps.Handler,
 
 	<-ctx.Done()
 	return err
-}
-
-func (c *conn) Close() error {
-	return c.stan.Close()
-}
-
-// ----------------------------------------------------------------------------
-
-type topic struct {
-	stan stan.Conn
-	name string
-}
-
-func (t *topic) Publish(ctx context.Context, msg *bps.PubMessage) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	return t.stan.Publish(t.name, msg.Data)
-}
-
-func (t *topic) PublishBatch(ctx context.Context, messages []*bps.PubMessage) error {
-	for i, msg := range messages {
-		if err := t.Publish(ctx, msg); err != nil {
-			return fmt.Errorf("publish %d of %d: %w", i, len(messages), err)
-		}
-	}
-	return nil
 }
 
 // ----------------------------------------------------------------------------

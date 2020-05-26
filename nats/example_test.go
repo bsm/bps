@@ -33,9 +33,8 @@ func ExampleSubscriber() {
 	defer cancel()
 
 	// will block till context is cancelled or handler returns error:
-	err = sub.Subscribe(
+	err = sub.Topic("topic").Subscribe(
 		ctx,
-		"topic",
 		bps.HandlerFunc(func(msg bps.SubMessage) error {
 			_, _ = fmt.Printf("%s\n", string(msg.Data()))
 			return nil // or bps.Done to unsubscribe

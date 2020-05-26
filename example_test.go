@@ -25,8 +25,8 @@ func ExamplePublisher() {
 		Data: []byte("message-2"),
 	})
 
-	fmt.Println(len(topicA.(*bps.InMemTopic).Messages()))
-	fmt.Println(len(topicB.(*bps.InMemTopic).Messages()))
+	fmt.Println(len(topicA.(*bps.InMemPubTopic).Messages()))
+	fmt.Println(len(topicB.(*bps.InMemPubTopic).Messages()))
 
 	// Output:
 	// 2
@@ -54,7 +54,7 @@ func ExampleSubscriber() {
 	})
 
 	// blocks till all the messages are consumed or error occurs:
-	err := sub.Subscribe(ctx, "foo", handler)
+	err := sub.Topic("foo").Subscribe(ctx, handler)
 	if err != nil {
 		panic(err.Error())
 	}

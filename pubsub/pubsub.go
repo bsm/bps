@@ -40,7 +40,7 @@ func init() {
 type Publisher struct {
 	client   *native.Client
 	settings *native.PublishSettings
-	topics   map[string]*Topic
+	topics   map[string]*PubTopic
 	mu       sync.RWMutex
 }
 
@@ -54,12 +54,12 @@ func NewPublisher(ctx context.Context, projectID string, settings *native.Publis
 	return &Publisher{
 		client:   client,
 		settings: settings,
-		topics:   make(map[string]*Topic),
+		topics:   make(map[string]*PubTopic),
 	}, nil
 }
 
 // Topic implements the bps.Publisher interface.
-func (p *Publisher) Topic(name string) bps.Topic {
+func (p *Publisher) Topic(name string) bps.PubTopic {
 	p.mu.RLock()
 	topic, ok := p.topics[name]
 	p.mu.RUnlock()
@@ -76,7 +76,7 @@ func (p *Publisher) Topic(name string) bps.Topic {
 		if p.settings != nil {
 			nt.PublishSettings = *p.settings
 		}
-		topic = &Topic{topic: nt}
+		topic = &PubTopic{topic: nt}
 		p.topics[name] = topic
 	}
 	return topic
@@ -113,14 +113,14 @@ func (p *Publisher) Client() *native.Client {
 
 // --------------------------------------------------------------------
 
-// Topic wraps a pubsub topic.
-type Topic struct {
+// PubTopic wraps a pubsub topic.
+type PubTopic struct {
 	topic *native.Topic
 	last  atomic.Value
 }
 
 // Publish implements the bps.Topic interface.
-func (t *Topic) Publish(ctx context.Context, msg *bps.PubMessage) error {
+func (t *PubTopic) Publish(ctx context.Context, msg *bps.PubMessage) error {
 	res := t.topic.Publish(ctx, &native.Message{
 		ID:         msg.ID,
 		Data:       msg.Data,
@@ -131,7 +131,7 @@ func (t *Topic) Publish(ctx context.Context, msg *bps.PubMessage) error {
 }
 
 // PublishBatch implements the bps.Topic interface.
-func (t *Topic) PublishBatch(ctx context.Context, batch []*bps.PubMessage) error {
+func (t *PubTopic) PublishBatch(ctx context.Context, batch []*bps.PubMessage) error {
 	for _, msg := range batch {
 		if err := t.Publish(ctx, msg); err != nil {
 			return err
@@ -141,11 +141,11 @@ func (t *Topic) PublishBatch(ctx context.Context, batch []*bps.PubMessage) error
 }
 
 // Topic returns the native pubsub Topic. Use at your own risk!
-func (t *Topic) Topic() *native.Topic {
+func (t *PubTopic) Topic() *native.Topic {
 	return t.topic
 }
 
-func (t *Topic) wait(ctx context.Context) error {
+func (t *PubTopic) wait(ctx context.Context) error {
 	if v := t.last.Load(); v != nil {
 		_, err := v.(*native.PublishResult).Get(ctx)
 		return err
@@ -161,6 +161,8 @@ type Subscriber struct {
 }
 
 // NewSubscriber inits a subscriber.
+// It starts handling from the newest available message (published after subscribing).
+// Google PubSub may re-deliver successfully handled messages.
 func NewSubscriber(ctx context.Context, projectID string) (*Subscriber, error) {
 	client, err := native.NewClient(ctx, projectID)
 	if err != nil {
@@ -172,16 +174,33 @@ func NewSubscriber(ctx context.Context, projectID string) (*Subscriber, error) {
 	}, nil
 }
 
-// Subscribe subscribes to a given topic and handles messages till bps.Done is returned or other error occurs or context is cancelled.
-// It starts handling from the newest available message (published after subscribing).
-// Google PubSub may re-deliver successfully handled messages.
-func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Handler, _ ...bps.SubOption) error {
+// Topic returns a subcriber topic handle.
+func (s *Subscriber) Topic(name string) bps.SubTopic {
+	return &subTopic{
+		client: s.client,
+		name:   name,
+	}
+}
+
+// Close closes the client.
+func (s *Subscriber) Close() error {
+	return s.client.Close()
+}
+
+// --------------------------------------------------------------------
+
+type subTopic struct {
+	client *native.Client
+	name   string
+}
+
+func (t *subTopic) Subscribe(ctx context.Context, handler bps.Handler, _ ...bps.SubOption) error {
 	// usual way to "unsubscribe" from Google PubSub is to cancel context:
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	sub, err := s.client.CreateSubscription(ctx, bps.GenClientID(), native.SubscriptionConfig{
-		Topic: s.client.Topic(topic),
+	sub, err := t.client.CreateSubscription(ctx, bps.GenClientID(), native.SubscriptionConfig{
+		Topic: t.client.Topic(t.name),
 	})
 	if err != nil {
 		return err
@@ -218,11 +237,6 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Ha
 	//       Therefore, while the StreamingPull API may have a seemingly surprising 100% error rate, this is by design.
 
 	return multierr.Combine(err, psHandler.LastErr()) // nil errs are ignored my multierr
-}
-
-// Close closes the client.
-func (s *Subscriber) Close() error {
-	return s.client.Close()
 }
 
 // ----------------------------------------------------------------------------

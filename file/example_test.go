@@ -65,7 +65,7 @@ func ExampleSubscriber() {
 	})
 
 	// blocks till all the messages are consumed or error occurs:
-	err = sub.Subscribe(ctx, "topic", handler)
+	err = sub.Topic("topic").Subscribe(ctx, handler)
 	if err != nil {
 		panic(err.Error())
 	}
