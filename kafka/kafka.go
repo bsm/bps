@@ -129,16 +129,6 @@ func (t *topicAsync) Publish(_ context.Context, msg *bps.PubMessage) error {
 	return nil
 }
 
-// PublishBatch implements the bps.Topic interface.
-func (t *topicAsync) PublishBatch(ctx context.Context, batch []*bps.PubMessage) error {
-	for _, msg := range batch {
-		if err := t.Publish(ctx, msg); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // --------------------------------------------------------------------
 
 // SyncPublisher wraps a synchronous kafka producer and implements the bps.Publisher interface.
@@ -179,19 +169,6 @@ type topicSync struct {
 func (t *topicSync) Publish(_ context.Context, msg *bps.PubMessage) error {
 	_, _, err := t.producer.SendMessage(convertMessage(t.name, msg))
 	return err
-}
-
-// PublishBatch implements the bps.Topic interface.
-func (t *topicSync) PublishBatch(ctx context.Context, batch []*bps.PubMessage) error {
-	if len(batch) == 0 {
-		return nil
-	}
-
-	pmsgs := make([]*sarama.ProducerMessage, len(batch))
-	for i, msg := range batch {
-		pmsgs[i] = convertMessage(t.name, msg)
-	}
-	return t.producer.SendMessages(pmsgs)
 }
 
 // --------------------------------------------------------------------

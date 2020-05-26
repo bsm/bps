@@ -71,15 +71,6 @@ func (t *pubTopic) Publish(ctx context.Context, msg *bps.PubMessage) error {
 	return t.conn.Publish(t.name, msg.Data)
 }
 
-func (t *pubTopic) PublishBatch(ctx context.Context, messages []*bps.PubMessage) error {
-	for i, msg := range messages {
-		if err := t.Publish(ctx, msg); err != nil {
-			return fmt.Errorf("publish %d of %d: %w", i, len(messages), err)
-		}
-	}
-	return nil
-}
-
 // ----------------------------------------------------------------------------
 
 type subscriber struct {

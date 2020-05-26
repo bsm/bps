@@ -56,34 +56,6 @@ func Publisher(input *PublisherInput) {
 			return input.Messages(topicB, 1)
 		}, "3s").Should(haveData("v2"))
 	})
-
-	ginkgo.It("should publish batches", func() {
-		Ω.Expect(subject.Topic(topicA).PublishBatch(ctx, []*bps.PubMessage{
-			{Data: []byte("v1")},
-			{Data: []byte("v3")},
-			{Data: []byte("v5")},
-			{Data: []byte("v7")},
-			{Data: []byte("v9")},
-		})).To(Ω.Succeed())
-
-		Ω.Expect(subject.Topic(topicB).PublishBatch(ctx, []*bps.PubMessage{
-			{Data: []byte("v2")},
-			{Data: []byte("v4")},
-		})).To(Ω.Succeed())
-
-		Ω.Expect(subject.Topic(topicB).PublishBatch(ctx, []*bps.PubMessage{
-			{Data: []byte("v6")},
-			{Data: []byte("v8")},
-		})).To(Ω.Succeed())
-
-		Ω.Eventually(func() ([]*bps.PubMessage, error) {
-			return input.Messages(topicA, 5)
-		}, "3s").Should(haveData("v1", "v3", "v5", "v7", "v9"))
-
-		Ω.Eventually(func() ([]*bps.PubMessage, error) {
-			return input.Messages(topicB, 4)
-		}, "3s").Should(haveData("v2", "v4", "v6", "v8"))
-	})
 }
 
 func haveData(vals ...string) types.GomegaMatcher {

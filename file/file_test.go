@@ -127,11 +127,11 @@ func seedTopic(dir, topic string, messages []bps.SubMessage) {
 	Expect(err).NotTo(HaveOccurred())
 	defer pub.Close()
 
-	pubMessages := make([]*bps.PubMessage, 0, len(messages))
+	top := pub.Topic(topic)
 	for _, msg := range messages {
-		pubMessages = append(pubMessages, &bps.PubMessage{
+		pubMsg := &bps.PubMessage{
 			Data: msg.Data(),
-		})
+		}
+		Expect(top.Publish(context.Background(), pubMsg)).To(Succeed())
 	}
-	Expect(pub.Topic(topic).PublishBatch(context.Background(), pubMessages)).To(Succeed())
 }

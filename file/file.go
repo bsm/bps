@@ -82,10 +82,6 @@ type fileTopic struct {
 }
 
 func (t *fileTopic) Publish(ctx context.Context, msg *bps.PubMessage) error {
-	return t.PublishBatch(ctx, []*bps.PubMessage{msg})
-}
-
-func (t *fileTopic) PublishBatch(_ context.Context, batch []*bps.PubMessage) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -98,10 +94,8 @@ func (t *fileTopic) PublishBatch(_ context.Context, batch []*bps.PubMessage) err
 		t.enc = json.NewEncoder(file)
 	}
 
-	for _, msg := range batch {
-		if err := t.enc.Encode(msg); err != nil {
-			return err
-		}
+	if err := t.enc.Encode(msg); err != nil {
+		return err
 	}
 	return t.file.Sync()
 }

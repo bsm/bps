@@ -130,16 +130,6 @@ func (t *PubTopic) Publish(ctx context.Context, msg *bps.PubMessage) error {
 	return nil
 }
 
-// PublishBatch implements the bps.Topic interface.
-func (t *PubTopic) PublishBatch(ctx context.Context, batch []*bps.PubMessage) error {
-	for _, msg := range batch {
-		if err := t.Publish(ctx, msg); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // Topic returns the native pubsub Topic. Use at your own risk!
 func (t *PubTopic) Topic() *native.Topic {
 	return t.topic
