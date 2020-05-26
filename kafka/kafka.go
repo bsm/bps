@@ -104,7 +104,7 @@ func NewPublisher(addrs []string, config *sarama.Config) (*Publisher, error) {
 }
 
 // Topic implements the bps.Publisher interface.
-func (p *Publisher) Topic(name string) bps.Topic {
+func (p *Publisher) Topic(name string) bps.PubTopic {
 	return &topicAsync{name: name, producer: p.producer}
 }
 
@@ -156,7 +156,7 @@ func NewSyncPublisher(addrs []string, config *sarama.Config) (*SyncPublisher, er
 }
 
 // Topic implements the bps.Publisher interface.
-func (p *SyncPublisher) Topic(name string) bps.Topic {
+func (p *SyncPublisher) Topic(name string) bps.PubTopic {
 	return &topicSync{name: name, producer: p.producer}
 }
 

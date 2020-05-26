@@ -58,7 +58,7 @@ func newConn(stanClusterID, clientID string, opts []stan.Option) (*conn, error) 
 	}, nil
 }
 
-func (c *conn) Topic(name string) bps.Topic {
+func (c *conn) Topic(name string) bps.PubTopic {
 	return &topic{
 		stan: c.stan,
 		name: name,

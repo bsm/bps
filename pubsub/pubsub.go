@@ -59,7 +59,7 @@ func NewPublisher(ctx context.Context, projectID string, settings *native.Publis
 }
 
 // Topic implements the bps.Publisher interface.
-func (p *Publisher) Topic(name string) bps.Topic {
+func (p *Publisher) Topic(name string) bps.PubTopic {
 	p.mu.RLock()
 	topic, ok := p.topics[name]
 	p.mu.RUnlock()

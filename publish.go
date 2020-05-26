@@ -15,7 +15,7 @@ var (
 // Publisher defines the main publisher interface.
 type Publisher interface {
 	// Topic returns a topic handle by name.
-	Topic(name string) Topic
+	Topic(name string) PubTopic
 	// Close closes the producer connection.
 	Close() error
 }
@@ -72,8 +72,8 @@ type PubMessage struct {
 	Attributes map[string]string `json:"attributes,omitempty"`
 }
 
-// Topic is a publisher handle to a topic.
-type Topic interface {
+// PubTopic is a publisher handle to a topic.
+type PubTopic interface {
 	// Publish publishes a message to the topic.
 	Publish(context.Context, *PubMessage) error
 	// PublishBatch publishes a batch of messages to the topic.
@@ -96,7 +96,7 @@ func NewInMemPublisher() *InMemPublisher {
 }
 
 // Topic implements Publisher interface. It will auto-provision a topic if it does not exist.
-func (p *InMemPublisher) Topic(name string) Topic {
+func (p *InMemPublisher) Topic(name string) PubTopic {
 	p.mu.RLock()
 	topic, ok := p.topics[name]
 	p.mu.RUnlock()

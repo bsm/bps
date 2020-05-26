@@ -40,7 +40,7 @@ func NewPublisher(root string) (bps.Publisher, error) {
 	return &filePub{root: root, topics: make(map[string]*fileTopic)}, nil
 }
 
-func (p *filePub) Topic(name string) bps.Topic {
+func (p *filePub) Topic(name string) bps.PubTopic {
 	p.mu.RLock()
 	topic, ok := p.topics[name]
 	p.mu.RUnlock()
