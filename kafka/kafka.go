@@ -202,6 +202,7 @@ type Subscriber struct {
 }
 
 // NewSubscriber inits a new subscriber.
+// By default, it starts handling from the newest available message (published after subscribing).
 func NewSubscriber(addrs []string, config *sarama.Config) (*Subscriber, error) {
 	consumer, err := sarama.NewConsumer(addrs, config)
 	if err != nil {
@@ -230,8 +231,6 @@ type subTopic struct {
 	name     string
 }
 
-// Subscribe implements the bps.Subscriber interface.
-// By default, it starts handling from the newest available message (published after subscribing).
 func (t *subTopic) Subscribe(ctx context.Context, handler bps.Handler, options ...bps.SubOption) error {
 	opts := (&bps.SubOptions{
 		StartAt: bps.PositionNewest,
