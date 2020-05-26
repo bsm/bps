@@ -77,6 +77,8 @@ type PubTopic interface {
 	// Publish publishes a message to the topic.
 	Publish(context.Context, *PubMessage) error
 	// PublishBatch publishes a batch of messages to the topic.
+	//
+	// TODO: kill it!
 	PublishBatch(context.Context, []*PubMessage) error
 }
 
