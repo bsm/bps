@@ -210,9 +210,29 @@ func NewSubscriber(addrs []string, config *sarama.Config) (*Subscriber, error) {
 	return &Subscriber{consumer: consumer}, nil
 }
 
+// Topic returns named topic handle.
+func (s *Subscriber) Topic(name string) bps.SubTopic {
+	return &subTopic{
+		consumer: s.consumer,
+		name:     name,
+	}
+}
+
+// Close implements the bps.Subscriber interface.
+func (s *Subscriber) Close() error {
+	return s.consumer.Close()
+}
+
+// ----------------------------------------------------------------------------
+
+type subTopic struct {
+	consumer sarama.Consumer
+	name     string
+}
+
 // Subscribe implements the bps.Subscriber interface.
 // By default, it starts handling from the newest available message (published after subscribing).
-func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Handler, options ...bps.SubOption) error {
+func (t *subTopic) Subscribe(ctx context.Context, handler bps.Handler, options ...bps.SubOption) error {
 	opts := (&bps.SubOptions{
 		StartAt: bps.PositionNewest,
 	}).Apply(options)
@@ -228,9 +248,9 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Ha
 	}
 
 	// get partitions before spawning anything to do less cleanup on failure:
-	partitions, err := s.consumer.Partitions(topic)
+	partitions, err := t.consumer.Partitions(t.name)
 	if err != nil {
-		return fmt.Errorf("get %s partitions: %w", topic, err)
+		return fmt.Errorf("get %s partitions: %w", t.name, err)
 	}
 
 	// cancelable ctx to signal background partition-consuming goroutines to exit:
@@ -247,9 +267,9 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Ha
 		partition := partition // https://golang.org/doc/faq#closures_and_goroutines
 
 		consumers.Go(func() error {
-			pc, err := s.consumer.ConsumePartition(topic, partition, initialOffset)
+			pc, err := t.consumer.ConsumePartition(t.name, partition, initialOffset)
 			if err != nil {
-				return fmt.Errorf("consume %s/%d partition: %w", topic, partition, err)
+				return fmt.Errorf("consume %s/%d partition: %w", t.name, partition, err)
 			}
 			defer pc.Close()
 
@@ -287,11 +307,6 @@ func (s *Subscriber) Subscribe(ctx context.Context, topic string, handler bps.Ha
 			}
 		}
 	}
-}
-
-// Close implements the bps.Subscriber interface.
-func (s *Subscriber) Close() error {
-	return s.consumer.Close()
 }
 
 // convertDoneErr suppresses `bps.Done` error,
