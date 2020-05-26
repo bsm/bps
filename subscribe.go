@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/url"
 	"sync"
+
+	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -101,11 +103,19 @@ func StartAt(pos StartPosition) SubOption {
 
 // ----------------------------------------------------------------------------
 
+// Subscription defines a subscription-manager interface.
+type Subscription interface {
+	// Close stops message handling and frees resources.
+	// It is safe to be called multiple times.
+	Close() error
+}
+
 // SubTopic defines a subscriber topic handle.
 type SubTopic interface {
-	// Subscribe subscribes for topic messages and blocks till context is cancelled.
-	// Messages are guaranteed to be handled synchronously (handler is never called concurrently).
-	Subscribe(ctx context.Context, handler Handler, opts ...SubOption) error
+	// Subscribe subscribes for topic messages and handles them in background
+	// till error occurs or bps.Done is returned.
+	// Handler is guaranteed to be called synchronously (messages are handled one by one).
+	Subscribe(handler Handler, opts ...SubOption) (Subscription, error)
 }
 
 // Subscriber defines the main subscriber interface.
@@ -199,20 +209,27 @@ func NewInMemSubTopic(msgs []SubMessage) *InMemSubTopic {
 
 // Subscribe subscribes to in-memory messages by topic.
 // It starts handling from the first (oldest) available message.
-func (s *InMemSubTopic) Subscribe(ctx context.Context, handler Handler, _ ...SubOption) error {
-	for {
-		// check ctx/cancel BEFORE shift-ing each message:
-		if err := ctx.Err(); err != nil {
-			return err
-		}
+func (s *InMemSubTopic) Subscribe(handler Handler, _ ...SubOption) (Subscription, error) {
+	sub := newInMemSubscription()
 
-		msg, ok := s.shiftMessage()
-		if !ok {
-			return nil
-		}
+	sub.Go(func() error {
+		for {
+			select {
+			case <-sub.Done():
+				return nil
+			default:
+			}
 
-		handler.Handle(msg)
-	}
+			msg, ok := s.shiftMessage()
+			if !ok {
+				return nil
+			}
+
+			handler.Handle(msg)
+		}
+	})
+
+	return sub, nil
 }
 
 func (s *InMemSubTopic) shiftMessage() (SubMessage, bool) {
@@ -226,4 +243,30 @@ func (s *InMemSubTopic) shiftMessage() (SubMessage, bool) {
 
 	s.msgs = msgs[1:]
 	return msgs[0], true
+}
+
+// ----------------------------------------------------------------------------
+
+// inMemSubscription is closeable thread group.
+type inMemSubscription struct {
+	*errgroup.Group
+	context.Context
+
+	cancel context.CancelFunc
+	err    error
+}
+
+func newInMemSubscription() *inMemSubscription {
+	ctx, cancel := context.WithCancel(context.Background())
+	group, ctx := errgroup.WithContext(ctx)
+	return &inMemSubscription{
+		Group:   group,
+		Context: ctx,
+		cancel:  cancel,
+	}
+}
+
+func (s *inMemSubscription) Close() error {
+	s.cancel()
+	return s.Wait()
 }

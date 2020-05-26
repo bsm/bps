@@ -20,6 +20,7 @@ import (
 	"github.com/bsm/bps"
 	"github.com/nats-io/stan.go"
 	"github.com/nats-io/stan.go/pb"
+	"go.uber.org/multierr"
 )
 
 func init() {
@@ -105,7 +106,7 @@ type subTopic struct {
 	name string
 }
 
-func (t *subTopic) Subscribe(ctx context.Context, handler bps.Handler, options ...bps.SubOption) error {
+func (t *subTopic) Subscribe(handler bps.Handler, options ...bps.SubOption) error {
 	opts := (&bps.SubOptions{
 		StartAt: bps.PositionNewest,
 	}).Apply(options)
@@ -117,55 +118,46 @@ func (t *subTopic) Subscribe(ctx context.Context, handler bps.Handler, options .
 	case bps.PositionOldest:
 		startPos = pb.StartPosition_First
 	default:
-		return fmt.Errorf("start position %s is not supported by this implementation", opts.StartAt)
+		return nil, fmt.Errorf("start position %s is not supported by this implementation", opts.StartAt)
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	var (
-		sub stan.Subscription
-		err error
-	)
-
-	stop := func(cause error) {
-		// cancel context to return from Subscribe:
-		cancel()
-
-		// store error error to return:
-		if err == nil {
-			err = cause
-		}
-	}
-
-	sub, err = t.stan.Subscribe(
+	bpsSub := &subscription{hdl: handler}
+	stanSub, err := t.stan.Subscribe(
 		t.name,
-		func(msg *stan.Msg) {
-			// stop after first handler error returned:
-			// stan.Conn may still call handler to process buffered (?) messages:
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
-
-			handler.Handle(bps.RawSubMessage(msg.Data))
-
-			if err := msg.Ack(); err != nil {
-				stop(err)
-				return
-			}
-		},
+		bpsSub.MsgHandler,
 		stan.SetManualAckMode(), // force manual ack mode, it's handled by this impl
 		stan.StartAt(startPos),
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer sub.Close()
+	return bpsSub, nil
+}
 
-	<-ctx.Done()
-	return err
+type subscription struct {
+	hdl bps.Handler
+	sub stan.Subscription
+
+	err error // last non-nil error
+}
+
+func (s *subscription) Close() error {
+	return multierr.Combine(s.err, s.sub.Close())
+}
+
+func (s *subscription) MsgHandler(msg *stan.Msg) {
+	// stop after first handler error returned:
+	// stan.Conn may still call handler to process buffered (?) messages:
+	if s.err != nil {
+		return
+	}
+
+	s.hdl.Handle(bps.RawSubMessage(msg.Data))
+
+	if err := msg.Ack(); err != nil {
+		s.err = err
+		return
+	}
 }
 
 // ----------------------------------------------------------------------------

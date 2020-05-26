@@ -3,6 +3,7 @@ package bps_test
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/bsm/bps"
 )
@@ -34,11 +35,7 @@ func ExamplePublisher() {
 }
 
 func ExampleSubscriber() {
-	// ubsubscribing is done by canceling context, optional:
-	ctx, unsubscribe := context.WithCancel(context.Background())
-	defer unsubscribe()
-
-	sub := bps.NewInMemSubscriber(
+	subscriber := bps.NewInMemSubscriber(
 		map[string][]bps.SubMessage{
 			"foo": []bps.SubMessage{
 				bps.RawSubMessage("foo1"),
@@ -46,15 +43,22 @@ func ExampleSubscriber() {
 			},
 		},
 	)
-	defer sub.Close()
+	defer subscriber.Close()
 
 	handler := bps.HandlerFunc(func(msg bps.SubMessage) {
 		fmt.Printf("%s\n", msg.Data())
 	})
 
-	// blocks till all the messages are consumed or error occurs:
-	err := sub.Topic("foo").Subscribe(ctx, handler)
+	subscription, err := subscriber.Topic("foo").Subscribe(handler)
 	if err != nil {
+		panic(err.Error())
+	}
+	defer subscription.Close()
+
+	// block for a while:
+	time.Sleep(time.Second)
+
+	if err := subscription.Close(); err != nil {
 		panic(err.Error())
 	}
 

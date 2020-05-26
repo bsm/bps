@@ -1,7 +1,6 @@
 package lint
 
 import (
-	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -25,9 +24,6 @@ func Subscriber(input *SubscriberInput) {
 	var handler *mockHandler
 	var topic string
 
-	var ctx context.Context
-	var cancel context.CancelFunc
-
 	ginkgo.BeforeEach(func() {
 		cycle := time.Now().UnixNano()
 		topic = fmt.Sprintf("bps-unittest-topic-%d-a", cycle)
@@ -37,23 +33,17 @@ func Subscriber(input *SubscriberInput) {
 			bps.RawSubMessage("message-2"),
 		})
 		handler = &mockHandler{}
-
-		// give consumer max 5s per test:
-		ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
-	})
-
-	ginkgo.AfterEach(func() {
-		cancel()
 	})
 
 	ginkgo.It("should subscribe", func() {
 		go func() {
 			defer ginkgo.GinkgoRecover()
 
-			Ω.Expect(subject.Topic(topic).Subscribe(ctx, handler, bps.StartAt(bps.PositionOldest))).To(Ω.Or(
-				Ω.Succeed(),
-				Ω.MatchError(context.Canceled),
-			))
+			sub, err := subject.Topic(topic).Subscribe(handler, bps.StartAt(bps.PositionOldest))
+			Ω.Expect(err).NotTo(Ω.HaveOccurred())
+			defer sub.Close() // safe
+
+			Ω.Expect(sub.Close()).To(Ω.Succeed())
 		}()
 
 		Ω.Eventually(handler.Len).Should(Ω.Equal(2))
