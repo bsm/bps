@@ -51,7 +51,7 @@ func Subscriber(input *SubscriberInput) {
 		go func() {
 			defer ginkgo.GinkgoRecover()
 
-			Ω.Expect(subject.Subscribe(ctx, topic, handler, bps.StartAt(bps.PositionOldest))).To(Ω.Or(
+			Ω.Expect(subject.Topic(topic).Subscribe(ctx, handler, bps.StartAt(bps.PositionOldest))).To(Ω.Or(
 				Ω.Succeed(),
 				Ω.MatchError(context.Canceled),
 			))
@@ -65,7 +65,7 @@ func Subscriber(input *SubscriberInput) {
 		// allow error wrapping:
 		handler.Err = fmt.Errorf("wrapped %w", bps.Done)
 
-		Ω.Expect(subject.Subscribe(ctx, topic, handler, bps.StartAt(bps.PositionOldest))).To(Ω.Succeed())
+		Ω.Expect(subject.Topic(topic).Subscribe(ctx, handler, bps.StartAt(bps.PositionOldest))).To(Ω.Succeed())
 
 		// only one (first received) message handled before error is returned:
 		Ω.Expect(handler.Len()).To(Ω.Equal(1))
@@ -75,7 +75,7 @@ func Subscriber(input *SubscriberInput) {
 		expectedErr := errors.New("foo")
 		handler.Err = expectedErr
 
-		actualErr := subject.Subscribe(ctx, topic, handler, bps.StartAt(bps.PositionOldest))
+		actualErr := subject.Topic(topic).Subscribe(ctx, handler, bps.StartAt(bps.PositionOldest))
 
 		// allow error wrapping:
 		Ω.Expect(errors.Is(actualErr, expectedErr)).To(Ω.BeTrue())
@@ -84,6 +84,8 @@ func Subscriber(input *SubscriberInput) {
 		Ω.Expect(handler.Len()).To(Ω.Equal(1))
 	})
 }
+
+// ----------------------------------------------------------------------------
 
 type mockHandler struct {
 	mu   sync.RWMutex

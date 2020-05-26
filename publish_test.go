@@ -54,7 +54,7 @@ var _ = Describe("InMemPublisher", func() {
 		var shared lint.PublisherInput
 
 		readMessages := func(topic string, _ int) ([]*bps.PubMessage, error) {
-			return subject.Topic(topic).(*bps.InMemTopic).Messages(), nil
+			return subject.Topic(topic).(*bps.InMemPubTopic).Messages(), nil
 		}
 
 		BeforeEach(func() {
