@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/bsm/bps"
+	"github.com/bsm/bps/internal/concurrent"
 )
 
 func init() {
@@ -140,29 +141,37 @@ func (s *fileSub) Close() error {
 type SubTopic string
 
 // Subscribe subscribes/consumes records from file.
-func (t SubTopic) Subscribe(ctx context.Context, handler bps.Handler, _ ...bps.SubOption) error {
-	f, err := os.Open(string(t))
-	if os.IsNotExist(err) {
+func (t SubTopic) Subscribe(handler bps.Handler, _ ...bps.SubOption) (bps.Subscription, error) {
+	sub := concurrent.NewGroup(context.Background())
+
+	sub.Go(func() error {
+		f, err := os.Open(string(t))
+		if os.IsNotExist(err) {
+			return nil
+		} else if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		dec := json.NewDecoder(f)
+		for dec.More() {
+			select {
+			case <-sub.Done():
+				return nil
+			default:
+			}
+
+			var msg subMessage
+			if err := dec.Decode(&msg); err != nil {
+				return err
+			}
+
+			handler.Handle(msg)
+		}
 		return nil
-	} else if err != nil {
-		return err
-	}
-	defer f.Close()
+	})
 
-	dec := json.NewDecoder(f)
-	for dec.More() {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-
-		var msg subMessage
-		if err := dec.Decode(&msg); err != nil {
-			return err
-		}
-
-		handler.Handle(msg)
-	}
-	return nil
+	return sub, nil
 }
 
 type subMessage struct{ bps.PubMessage }
