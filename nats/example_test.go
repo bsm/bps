@@ -21,20 +21,13 @@ func ExamplePublisher() {
 }
 
 func ExampleSubscriber() {
-	ctx := context.TODO()
-	sub, err := bps.NewSubscriber(ctx, "nats://localhost:4222/?client_id=my_client&start_at=first")
+	subscriber, err := bps.NewSubscriber(context.TODO(), "nats://localhost:4222/?client_id=my_client&start_at=first")
 	if err != nil {
 		panic(err.Error())
 	}
-	defer sub.Close()
+	defer subscriber.Close()
 
-	// can be just context.WithCancel - `cancel` can be used to stop consuming:
-	ctx, cancel := context.WithTimeout(ctx, time.Second)
-	defer cancel()
-
-	// will block till context is cancelled:
-	err = sub.Topic("topic").Subscribe(
-		ctx,
+	subscription, err := subscriber.Topic("topic").Subscribe(
 		bps.HandlerFunc(func(msg bps.SubMessage) {
 			_, _ = fmt.Printf("%s\n", string(msg.Data()))
 		}),
@@ -43,4 +36,7 @@ func ExampleSubscriber() {
 	if err != nil {
 		panic(err.Error())
 	}
+	defer subscription.Close()
+
+	time.Sleep(time.Second) // wait to receive some messages
 }

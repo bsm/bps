@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/url"
 	"sync"
+
+	"github.com/bsm/bps/internal/concurrent"
 )
 
 var (
@@ -34,6 +36,21 @@ func (m RawSubMessage) Data() []byte {
 // Consuming can be stopped by returning bps.Done.
 type Handler interface {
 	Handle(SubMessage)
+}
+
+// SyncHandler is a synchronized handler wrapper.
+// It is intended to be used only by subscriber implementations which need it.
+// It shouldn't be used by lib consumer.
+type SyncHandler struct {
+	sync.Mutex
+	Handler
+}
+
+// Handle synchronizes underlying Handler.Handle calls.
+func (h *SyncHandler) Handle(msg SubMessage) {
+	h.Lock()
+	h.Handler.Handle(msg)
+	h.Unlock()
 }
 
 // HandlerFunc is a func-based handler adapter.
@@ -101,11 +118,19 @@ func StartAt(pos StartPosition) SubOption {
 
 // ----------------------------------------------------------------------------
 
+// Subscription defines a subscription-manager interface.
+type Subscription interface {
+	// Close stops message handling and frees resources.
+	// It is safe to be called multiple times.
+	Close() error
+}
+
 // SubTopic defines a subscriber topic handle.
 type SubTopic interface {
-	// Subscribe subscribes for topic messages and blocks till context is cancelled.
-	// Messages are guaranteed to be handled synchronously (handler is never called concurrently).
-	Subscribe(ctx context.Context, handler Handler, opts ...SubOption) error
+	// Subscribe subscribes for topic messages and handles them in background
+	// till error occurs or bps.Done is returned.
+	// Handler is guaranteed to be called synchronously (messages are handled one by one).
+	Subscribe(handler Handler, opts ...SubOption) (Subscription, error)
 }
 
 // Subscriber defines the main subscriber interface.
@@ -199,20 +224,28 @@ func NewInMemSubTopic(msgs []SubMessage) *InMemSubTopic {
 
 // Subscribe subscribes to in-memory messages by topic.
 // It starts handling from the first (oldest) available message.
-func (s *InMemSubTopic) Subscribe(ctx context.Context, handler Handler, _ ...SubOption) error {
-	for {
-		// check ctx/cancel BEFORE shift-ing each message:
-		if err := ctx.Err(); err != nil {
-			return err
-		}
+func (s *InMemSubTopic) Subscribe(handler Handler, _ ...SubOption) (Subscription, error) {
+	sub := concurrent.NewGroup(context.Background())
 
-		msg, ok := s.shiftMessage()
-		if !ok {
-			return nil
-		}
+	sub.Go(func() {
+		for {
+			select {
+			case <-sub.Done():
+				return
+			default:
+			}
 
-		handler.Handle(msg)
-	}
+			msg, ok := s.shiftMessage()
+			if !ok {
+				// no more messages, OK to return now
+				return
+			}
+
+			handler.Handle(msg)
+		}
+	})
+
+	return sub, nil
 }
 
 func (s *InMemSubTopic) shiftMessage() (SubMessage, bool) {

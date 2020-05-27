@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/bsm/bps"
 	_ "github.com/bsm/bps/file"
@@ -53,21 +54,23 @@ func ExampleSubscriber() {
 	// produce some messages (seed topic):
 	SeedTopic(ctx, dir, "topic")
 
-	sub, err := bps.NewSubscriber(ctx, "file://"+dir)
+	subscriber, err := bps.NewSubscriber(ctx, "file://"+dir)
 	if err != nil {
 		panic(err.Error())
 	}
-	defer sub.Close()
+	defer subscriber.Close()
 
-	handler := bps.HandlerFunc(func(msg bps.SubMessage) {
-		fmt.Printf("%s\n", msg.Data())
-	})
-
-	// blocks till all the messages are consumed:
-	err = sub.Topic("topic").Subscribe(ctx, handler)
+	subscription, err := subscriber.Topic("topic").Subscribe(
+		bps.HandlerFunc(func(msg bps.SubMessage) {
+			fmt.Printf("%s\n", msg.Data())
+		}),
+	)
 	if err != nil {
 		panic(err.Error())
 	}
+	defer subscription.Close()
+
+	time.Sleep(time.Second) // wait to receive some messages
 
 	// Output:
 	// message

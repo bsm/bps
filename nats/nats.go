@@ -105,7 +105,7 @@ type subTopic struct {
 	name string
 }
 
-func (t *subTopic) Subscribe(ctx context.Context, handler bps.Handler, options ...bps.SubOption) error {
+func (t *subTopic) Subscribe(handler bps.Handler, options ...bps.SubOption) (bps.Subscription, error) {
 	opts := (&bps.SubOptions{
 		StartAt: bps.PositionNewest,
 	}).Apply(options)
@@ -117,55 +117,20 @@ func (t *subTopic) Subscribe(ctx context.Context, handler bps.Handler, options .
 	case bps.PositionOldest:
 		startPos = pb.StartPosition_First
 	default:
-		return fmt.Errorf("start position %s is not supported by this implementation", opts.StartAt)
+		return nil, fmt.Errorf("start position %s is not supported by this implementation", opts.StartAt)
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	var (
-		sub stan.Subscription
-		err error
-	)
-
-	stop := func(cause error) {
-		// cancel context to return from Subscribe:
-		cancel()
-
-		// store error error to return:
-		if err == nil {
-			err = cause
-		}
-	}
-
-	sub, err = t.stan.Subscribe(
+	sub, err := t.stan.Subscribe(
 		t.name,
 		func(msg *stan.Msg) {
-			// stop after first handler error returned:
-			// stan.Conn may still call handler to process buffered (?) messages:
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
-
 			handler.Handle(bps.RawSubMessage(msg.Data))
-
-			if err := msg.Ack(); err != nil {
-				stop(err)
-				return
-			}
 		},
-		stan.SetManualAckMode(), // force manual ack mode, it's handled by this impl
 		stan.StartAt(startPos),
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer sub.Close()
-
-	<-ctx.Done()
-	return err
+	return sub, nil
 }
 
 // ----------------------------------------------------------------------------

@@ -21,20 +21,13 @@ func ExamplePublisher() {
 }
 
 func ExampleSubscriber() {
-	ctx := context.TODO()
-	sub, err := bps.NewSubscriber(ctx, "kafka://10.0.0.1:9092,10.0.0.2:9092,10.0.0.3:9092/?client.id=my-client&kafka.version=2.3.0&channel.buffer.size=1024")
+	subscriber, err := bps.NewSubscriber(context.TODO(), "kafka://10.0.0.1:9092,10.0.0.2:9092,10.0.0.3:9092/?client.id=my-client&kafka.version=2.3.0&channel.buffer.size=1024")
 	if err != nil {
 		panic(err.Error())
 	}
-	defer sub.Close()
+	defer subscriber.Close()
 
-	// can be just context.WithCancel - `cancel` can be used to stop consuming:
-	ctx, cancel := context.WithTimeout(ctx, time.Second)
-	defer cancel()
-
-	// will block till context is cancelled:
-	err = sub.Topic("topic").Subscribe(
-		ctx,
+	subscription, err := subscriber.Topic("topic").Subscribe(
 		bps.HandlerFunc(func(msg bps.SubMessage) {
 			_, _ = fmt.Printf("%s\n", string(msg.Data()))
 		}),
@@ -43,4 +36,7 @@ func ExampleSubscriber() {
 	if err != nil {
 		panic(err.Error())
 	}
+	defer subscription.Close()
+
+	time.Sleep(time.Second) // wait to receive some messages
 }
