@@ -57,13 +57,11 @@ package kafka
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/url"
 
 	"github.com/Shopify/sarama"
 	"github.com/bsm/bps"
-	"go.uber.org/multierr"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -256,7 +254,7 @@ func (t *subTopic) Subscribe(ctx context.Context, handler bps.Handler, options .
 
 				case msg, more := <-pc.Messages():
 					if !more {
-						return bps.Done // normal exit
+						return nil
 					}
 					select {
 					case messages <- bps.RawSubMessage(msg.Value):
@@ -271,25 +269,10 @@ func (t *subTopic) Subscribe(ctx context.Context, handler bps.Handler, options .
 	for {
 		select {
 		case <-ctx.Done():
-			return convertDoneErr(consumers.Wait())
+			return consumers.Wait()
 
 		case msg := <-messages:
-			if err := handler.Handle(msg); err != nil {
-				cancel() // signal background goroutines to exit
-				return multierr.Combine(
-					convertDoneErr(err),
-					convertDoneErr(consumers.Wait()),
-				)
-			}
+			handler.Handle(msg)
 		}
 	}
-}
-
-// convertDoneErr suppresses `bps.Done` error,
-// as it is used to indicate success.
-func convertDoneErr(err error) error {
-	if errors.Is(err, bps.Done) {
-		return nil
-	}
-	return err
 }

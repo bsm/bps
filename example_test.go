@@ -48,9 +48,8 @@ func ExampleSubscriber() {
 	)
 	defer sub.Close()
 
-	handler := bps.HandlerFunc(func(msg bps.SubMessage) error {
+	handler := bps.HandlerFunc(func(msg bps.SubMessage) {
 		fmt.Printf("%s\n", msg.Data())
-		return nil // or bps.Done to stop/unsubscribe
 	})
 
 	// blocks till all the messages are consumed or error occurs:

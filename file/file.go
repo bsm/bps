@@ -4,7 +4,6 @@ package file
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net/url"
 	"os"
 	"path"
@@ -161,11 +160,7 @@ func (t SubTopic) Subscribe(ctx context.Context, handler bps.Handler, _ ...bps.S
 			return err
 		}
 
-		if err := handler.Handle(msg); errors.Is(err, bps.Done) {
-			break
-		} else if err != nil {
-			return err
-		}
+		handler.Handle(msg)
 	}
 	return nil
 }

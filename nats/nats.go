@@ -13,7 +13,6 @@ package nats
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -150,14 +149,7 @@ func (t *subTopic) Subscribe(ctx context.Context, handler bps.Handler, options .
 			default:
 			}
 
-			if err := handler.Handle(bps.RawSubMessage(msg.Data)); errors.Is(err, bps.Done) {
-				// stop normally, still acknowledge message:
-				stop(nil)
-			} else if err != nil {
-				// stop with error, do not acknowledge message:
-				stop(err)
-				return
-			}
+			handler.Handle(bps.RawSubMessage(msg.Data))
 
 			if err := msg.Ack(); err != nil {
 				stop(err)
