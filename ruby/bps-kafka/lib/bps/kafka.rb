@@ -5,10 +5,10 @@ module BPS::Kafka
   # ReliablePublisher is a slow, but reliable Kafka Publisher.
   # There is no batching at all, messages are emitted synchronously.
   class ReliablePublisher < BPS::Publisher::Abstract
-    DELIVER_MESSAGE_RETRIES = 3.freeze # 1 by kafka-ruby's Kafka::Client default, increase slightly
+    DELIVER_MESSAGE_RETRIES = 3 # 1 by kafka-ruby's Kafka::Client default, increase slightly
 
     class Topic < BPS::Publisher::Topic::Abstract
-      def initialize(client, topic_name)
+      def initialize(client, _topic_name)
         @client = client
         @topic_name = @topic_name
       end

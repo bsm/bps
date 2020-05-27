@@ -6,7 +6,7 @@ module BPS
     class Abstract
       # def initialize; end
 
-      def topic(name)
+      def topic(_name)
         raise 'not implemented'
       end
 
@@ -17,7 +17,7 @@ module BPS
       class Abstract
         # def initialize; end
 
-        def publish(msg_data)
+        def publish(_msg_data)
           raise 'not implemented'
         end
       end
@@ -28,7 +28,7 @@ module BPS
     class Abstract
       def initialize; end
 
-      def subscribe(topic, **_opts, &msg_handler)
+      def subscribe(_topic, **_opts)
         raise 'not implemented'
       end
 

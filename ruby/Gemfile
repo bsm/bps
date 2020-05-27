@@ -2,10 +2,11 @@
 
 source 'https://rubygems.org'
 
-git_source(:github) {|repo_name| "https://github.com/#{repo_name}" }
+group :development, :test do
+  gem 'bps', path: './bps'
+  gem 'bps-kafka', path: './bps-kafka'
 
-# gem "rails"
-
-gem 'rubocop', '~> 0.84.0', group: :development
-
-gem 'rake', '~> 13.0', group: :development
+  gem 'rake'
+  gem 'rspec'
+  gem 'rubocop'
+end

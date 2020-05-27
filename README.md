@@ -66,8 +66,8 @@ func main() {
 		Data: []byte("message-2"),
 	})
 
-	fmt.Println(len(topicA.(*bps.InMemTopic).Messages()))
-	fmt.Println(len(topicB.(*bps.InMemTopic).Messages()))
+	fmt.Println(len(topicA.(*bps.InMemPubTopic).Messages()))
+	fmt.Println(len(topicB.(*bps.InMemPubTopic).Messages()))
 
 }
 ```
@@ -108,8 +108,8 @@ func main() {
 		Data: []byte("message-2"),
 	})
 
-	fmt.Println(len(topicA.(*bps.InMemTopic).Messages()))
-	fmt.Println(len(topicB.(*bps.InMemTopic).Messages()))
+	fmt.Println(len(topicA.(*bps.InMemPubTopic).Messages()))
+	fmt.Println(len(topicB.(*bps.InMemPubTopic).Messages()))
 
 }
 ```
