@@ -3,7 +3,9 @@ package bps
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/url"
+	"os"
 	"sync"
 
 	"github.com/bsm/bps/internal/concurrent"
@@ -83,6 +85,9 @@ type SubOptions struct {
 	// May not be supported by some implementations.
 	// Default: implementation-specific (PositionNewest is recommended).
 	StartAt StartPosition
+	// ErrorHandler is a subscription error handler (system/implementation-specific errors).
+	// Default: ignore errors.
+	ErrorHandler func(error)
 }
 
 // Apply configures SubOptions struct by applying each single SubOption one by one.
@@ -100,6 +105,12 @@ func (o *SubOptions) Apply(options []SubOption) *SubOptions {
 	if o == nil {
 		o = new(SubOptions)
 	}
+
+	// apply some defaults:
+	if o.ErrorHandler == nil {
+		o.ErrorHandler = func(error) {} // noop
+	}
+
 	for _, opt := range options {
 		opt(o)
 	}
@@ -114,6 +125,21 @@ func StartAt(pos StartPosition) SubOption {
 	return func(o *SubOptions) {
 		o.StartAt = pos
 	}
+}
+
+// WithErrorHandler configures subscription error handler.
+func WithErrorHandler(h func(error)) SubOption {
+	return func(o *SubOptions) {
+		o.ErrorHandler = h
+	}
+}
+
+// WithErrorLogging configures subscription to just log errors to STDERR.
+func WithErrorLogging() SubOption {
+	log := log.New(os.Stdout, "[bps] ", log.LstdFlags)
+	return WithErrorHandler(func(err error) {
+		log.Println(err)
+	})
 }
 
 // ----------------------------------------------------------------------------

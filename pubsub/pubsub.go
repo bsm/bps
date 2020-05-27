@@ -184,7 +184,9 @@ type subTopic struct {
 	name   string
 }
 
-func (t *subTopic) Subscribe(handler bps.Handler, _ ...bps.SubOption) (bps.Subscription, error) {
+func (t *subTopic) Subscribe(handler bps.Handler, options ...bps.SubOption) (bps.Subscription, error) {
+	opts := (&bps.SubOptions{}).Apply(options)
+
 	// usual way to "unsubscribe" from Google PubSub is to cancel context:
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -226,7 +228,7 @@ func (t *subTopic) Subscribe(handler bps.Handler, _ ...bps.SubOption) (bps.Subsc
 			handler.Handle(bps.RawSubMessage(msg.Data))
 			msg.Ack() // no error returned, msg will be re-delivered on Ack failure
 		})
-		_ = err // TODO: handle it with smth like opts.ErrorHandler
+		opts.ErrorHandler(err)
 	})
 
 	return sub, nil
