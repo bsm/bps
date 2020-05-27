@@ -3,15 +3,14 @@ package concurrent
 
 import (
 	"context"
-
-	"golang.org/x/sync/errgroup"
+	"sync"
 )
 
 // Group is a Close-able thread group.
 type Group struct {
-	*errgroup.Group
 	context.Context
 
+	group  sync.WaitGroup
 	cancel context.CancelFunc
 }
 
@@ -28,9 +27,7 @@ type Group struct {
 //
 func NewGroup(ctx context.Context) *Group {
 	ctx, cancel := context.WithCancel(ctx)
-	group, ctx := errgroup.WithContext(ctx)
 	return &Group{
-		Group:   group,
 		Context: ctx,
 		cancel:  cancel,
 	}
@@ -39,14 +36,13 @@ func NewGroup(ctx context.Context) *Group {
 // Go runs func in backround.
 // Func should return when Group.Context is cancelled/done.
 func (g *Group) Go(f func()) {
-	g.Group.Go(func() error {
-		f()
-		return nil
-	})
+	g.group.Add(1)
+	go func() { f(); g.group.Done() }()
 }
 
 // Close cancels context and waits for threads to terminate.
 func (g *Group) Close() error {
 	g.cancel()
-	return g.Wait()
+	g.group.Wait()
+	return nil
 }
