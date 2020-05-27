@@ -8,9 +8,8 @@ import (
 
 // Group is a Close-able thread group.
 type Group struct {
-	context.Context
-
 	group  sync.WaitGroup
+	ctx    context.Context
 	cancel context.CancelFunc
 }
 
@@ -28,16 +27,22 @@ type Group struct {
 func NewGroup(ctx context.Context) *Group {
 	ctx, cancel := context.WithCancel(ctx)
 	return &Group{
-		Context: ctx,
-		cancel:  cancel,
+		ctx:    ctx,
+		cancel: cancel,
 	}
 }
 
 // Go runs func in backround.
-// Func should return when Group.Context is cancelled/done.
+// Func should return when Group.Done() channel is closed.
 func (g *Group) Go(f func()) {
 	g.group.Add(1)
 	go func() { f(); g.group.Done() }()
+}
+
+// Done returns a done channel for this thread group.
+// It should be used by goroutines to return when it's closed.
+func (g *Group) Done() <-chan struct{} {
+	return g.ctx.Done()
 }
 
 // Close cancels context and waits for threads to terminate.
