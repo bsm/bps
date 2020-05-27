@@ -86,7 +86,7 @@ type SubOptions struct {
 	// Default: implementation-specific (PositionNewest is recommended).
 	StartAt StartPosition
 	// ErrorHandler is a subscription error handler (system/implementation-specific errors).
-	// Default: ignore errors.
+	// Default: log errors to STDERR.
 	ErrorHandler func(error)
 }
 
@@ -108,7 +108,8 @@ func (o *SubOptions) Apply(options []SubOption) *SubOptions {
 
 	// apply some defaults:
 	if o.ErrorHandler == nil {
-		o.ErrorHandler = func(error) {} // noop
+		log := log.New(os.Stdout, "[bps] ", log.LstdFlags) // TODO: maybe make global?..
+		o.ErrorHandler = func(err error) { log.Println(err) }
 	}
 
 	for _, opt := range options {
@@ -134,12 +135,11 @@ func WithErrorHandler(h func(error)) SubOption {
 	}
 }
 
-// WithErrorLogging configures subscription to just log errors to STDERR.
-func WithErrorLogging() SubOption {
-	log := log.New(os.Stdout, "[bps] ", log.LstdFlags)
-	return WithErrorHandler(func(err error) {
-		log.Println(err)
-	})
+// IgnoreSubscriptionErrors configures subscription to silently ignore errors.
+func IgnoreSubscriptionErrors() SubOption {
+	return func(o *SubOptions) {
+		o.ErrorHandler = func(error) {} // noop
+	}
 }
 
 // ----------------------------------------------------------------------------
