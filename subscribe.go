@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"sync"
 
-	"golang.org/x/sync/errgroup"
+	"github.com/bsm/bps/internal/concurrent"
 )
 
 var (
@@ -36,6 +36,21 @@ func (m RawSubMessage) Data() []byte {
 // Consuming can be stopped by returning bps.Done.
 type Handler interface {
 	Handle(SubMessage)
+}
+
+// SyncHandler is a synchronized handler wrapper.
+// It is intended to be used only by subscriber implementations which need it.
+// It shouldn't be used by lib consumer.
+type SyncHandler struct {
+	sync.Mutex
+	Handler
+}
+
+// Handle synchronizes underlying Handler.Handle calls.
+func (h *SyncHandler) Handle(msg SubMessage) {
+	h.Lock()
+	h.Handler.Handle(msg)
+	h.Unlock()
 }
 
 // HandlerFunc is a func-based handler adapter.
@@ -210,7 +225,7 @@ func NewInMemSubTopic(msgs []SubMessage) *InMemSubTopic {
 // Subscribe subscribes to in-memory messages by topic.
 // It starts handling from the first (oldest) available message.
 func (s *InMemSubTopic) Subscribe(handler Handler, _ ...SubOption) (Subscription, error) {
-	sub := newInMemSubscription()
+	sub := concurrent.NewGroup(context.Background())
 
 	sub.Go(func() error {
 		for {
@@ -243,30 +258,4 @@ func (s *InMemSubTopic) shiftMessage() (SubMessage, bool) {
 
 	s.msgs = msgs[1:]
 	return msgs[0], true
-}
-
-// ----------------------------------------------------------------------------
-
-// inMemSubscription is closeable thread group.
-type inMemSubscription struct {
-	*errgroup.Group
-	context.Context
-
-	cancel context.CancelFunc
-	err    error
-}
-
-func newInMemSubscription() *inMemSubscription {
-	ctx, cancel := context.WithCancel(context.Background())
-	group, ctx := errgroup.WithContext(ctx)
-	return &inMemSubscription{
-		Group:   group,
-		Context: ctx,
-		cancel:  cancel,
-	}
-}
-
-func (s *inMemSubscription) Close() error {
-	s.cancel()
-	return s.Wait()
 }

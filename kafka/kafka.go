@@ -60,9 +60,10 @@ import (
 	"fmt"
 	"net/url"
 
+	"github.com/bsm/bps/internal/concurrent"
+
 	"github.com/Shopify/sarama"
 	"github.com/bsm/bps"
-	"golang.org/x/sync/errgroup"
 )
 
 func init() {
@@ -206,7 +207,7 @@ type subTopic struct {
 	name     string
 }
 
-func (t *subTopic) Subscribe(ctx context.Context, handler bps.Handler, options ...bps.SubOption) error {
+func (t *subTopic) Subscribe(handler bps.Handler, options ...bps.SubOption) (bps.Subscription, error) {
 	opts := (&bps.SubOptions{
 		StartAt: bps.PositionNewest,
 	}).Apply(options)
@@ -218,61 +219,44 @@ func (t *subTopic) Subscribe(ctx context.Context, handler bps.Handler, options .
 	case bps.PositionOldest:
 		initialOffset = sarama.OffsetOldest
 	default:
-		return fmt.Errorf("start position %s is not supported by this implementation", opts.StartAt)
+		return nil, fmt.Errorf("start position %s is not supported by this implementation", opts.StartAt)
 	}
 
 	// get partitions before spawning anything to do less cleanup on failure:
 	partitions, err := t.consumer.Partitions(t.name)
 	if err != nil {
-		return fmt.Errorf("get %s partitions: %w", t.name, err)
+		return nil, fmt.Errorf("get %s partitions: %w", t.name, err)
 	}
 
-	// cancelable ctx to signal background partition-consuming goroutines to exit:
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	// synchronize handler access:
+	handler = &bps.SyncHandler{Handler: handler}
 
-	// multiplexed messages channel to call handler sequentially:
-	messages := make(chan bps.SubMessage)
-	defer close(messages)
+	// init closeable subscription/thread manager:
+	sub := concurrent.NewGroup(context.Background())
 
-	// spawn/manage partition-consuming goroutines:
-	consumers, ctx := errgroup.WithContext(ctx)
+	// spawn partition-consuming threads:
 	for _, partition := range partitions {
-		partition := partition // https://golang.org/doc/faq#closures_and_goroutines
+		pc, err := t.consumer.ConsumePartition(t.name, partition, initialOffset)
+		if err != nil {
+			_ = sub.Close()
+			return nil, fmt.Errorf("consume %s/%d partition: %w", t.name, partition, err)
+		}
 
-		consumers.Go(func() error {
-			pc, err := t.consumer.ConsumePartition(t.name, partition, initialOffset)
-			if err != nil {
-				return fmt.Errorf("consume %s/%d partition: %w", t.name, partition, err)
-			}
+		sub.Go(func() error {
 			defer pc.Close()
 
 			for {
 				select {
-				case <-ctx.Done():
-					return nil // no errors caused by THIS goroutine
+				case <-sub.Done():
+					return nil
 
-				case msg, more := <-pc.Messages():
-					if !more {
-						return nil
-					}
-					select {
-					case messages <- bps.RawSubMessage(msg.Value):
-					case <-ctx.Done():
-						return nil // no errors, this `case` may/will be reached only if multiplexed `messages` are not handled anymore
-					}
+				// TODO: what if one partition errors and it's Messages() chan is closed? Should we (try to) restart it?
+				case msg := <-pc.Messages():
+					handler.Handle(bps.RawSubMessage(msg.Value))
 				}
 			}
 		})
 	}
 
-	for {
-		select {
-		case <-ctx.Done():
-			return consumers.Wait()
-
-		case msg := <-messages:
-			handler.Handle(msg)
-		}
-	}
+	return sub, nil
 }
