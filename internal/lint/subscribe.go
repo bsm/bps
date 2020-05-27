@@ -36,18 +36,14 @@ func Subscriber(input *SubscriberInput) {
 	})
 
 	ginkgo.It("should subscribe", func() {
-		go func() {
-			defer ginkgo.GinkgoRecover()
-
-			sub, err := subject.Topic(topic).Subscribe(handler, bps.StartAt(bps.PositionOldest))
-			Ω.Expect(err).NotTo(Ω.HaveOccurred())
-			defer sub.Close() // safe
-
-			Ω.Expect(sub.Close()).To(Ω.Succeed())
-		}()
+		sub, err := subject.Topic(topic).Subscribe(handler, bps.StartAt(bps.PositionOldest))
+		Ω.Expect(err).NotTo(Ω.HaveOccurred())
+		defer sub.Close() // multiple calls are safe
 
 		Ω.Eventually(handler.Len).Should(Ω.Equal(2))
 		Ω.Expect(handler.Data()).To(Ω.ConsistOf("message-1", "message-2"))
+
+		Ω.Expect(sub.Close()).To(Ω.Succeed())
 	})
 }
 

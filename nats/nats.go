@@ -106,7 +106,7 @@ type subTopic struct {
 	name string
 }
 
-func (t *subTopic) Subscribe(handler bps.Handler, options ...bps.SubOption) error {
+func (t *subTopic) Subscribe(handler bps.Handler, options ...bps.SubOption) (bps.Subscription, error) {
 	opts := (&bps.SubOptions{
 		StartAt: bps.PositionNewest,
 	}).Apply(options)
@@ -121,28 +121,29 @@ func (t *subTopic) Subscribe(handler bps.Handler, options ...bps.SubOption) erro
 		return nil, fmt.Errorf("start position %s is not supported by this implementation", opts.StartAt)
 	}
 
-	bpsSub := &subscription{hdl: handler}
-	stanSub, err := t.stan.Subscribe(
+	var err error
+	sub := &subscription{handler: handler}
+	sub.stan, err = t.stan.Subscribe(
 		t.name,
-		bpsSub.MsgHandler,
+		sub.MsgHandler,
 		stan.SetManualAckMode(), // force manual ack mode, it's handled by this impl
 		stan.StartAt(startPos),
 	)
 	if err != nil {
 		return nil, err
 	}
-	return bpsSub, nil
+	return sub, nil
 }
 
 type subscription struct {
-	hdl bps.Handler
-	sub stan.Subscription
+	handler bps.Handler
+	stan    stan.Subscription
 
 	err error // last non-nil error
 }
 
 func (s *subscription) Close() error {
-	return multierr.Combine(s.err, s.sub.Close())
+	return multierr.Combine(s.err, s.stan.Close())
 }
 
 func (s *subscription) MsgHandler(msg *stan.Msg) {
@@ -152,8 +153,10 @@ func (s *subscription) MsgHandler(msg *stan.Msg) {
 		return
 	}
 
-	s.hdl.Handle(bps.RawSubMessage(msg.Data))
+	s.handler.Handle(bps.RawSubMessage(msg.Data))
 
+	// handler must handle errors on its own; then it may close subscription so Ack fails here;
+	// if Ack fails for other reasons (NATS temporarily down etc) - message will be re-delivered:
 	if err := msg.Ack(); err != nil {
 		s.err = err
 		return
