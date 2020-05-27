@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/bsm/bps"
 	_ "github.com/bsm/bps/file"
@@ -42,14 +43,13 @@ func ExamplePublisher() {
 }
 
 func ExampleSubscriber() {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	dir, err := ioutil.TempDir("", "bps-example")
 	if err != nil {
 		panic(err.Error())
 	}
 	defer os.RemoveAll(dir)
+
+	ctx := context.TODO()
 
 	// produce some messages (seed topic):
 	SeedTopic(ctx, dir, "topic")
@@ -63,7 +63,6 @@ func ExampleSubscriber() {
 	subscription, err := subscriber.Topic("topic").Subscribe(
 		bps.HandlerFunc(func(msg bps.SubMessage) {
 			fmt.Printf("%s\n", msg.Data())
-			cancel() // handle only one message and signal program to exit
 		}),
 	)
 	if err != nil {
@@ -71,14 +70,7 @@ func ExampleSubscriber() {
 	}
 	defer subscription.Close()
 
-	<-ctx.Done() // wait till message is received
-
-	// if interested in subscription error:
-	// this call will wait till subscription is stopped,
-	// and then it'll return last handler error (mostly failed Ack, if any):
-	if err := subscription.Close(); err != nil {
-		panic(err.Error())
-	}
+	time.Sleep(time.Second) // wait to receive some messages
 
 	// Output:
 	// message

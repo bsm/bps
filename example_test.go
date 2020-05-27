@@ -45,22 +45,17 @@ func ExampleSubscriber() {
 	)
 	defer subscriber.Close()
 
-	handler := bps.HandlerFunc(func(msg bps.SubMessage) {
-		fmt.Printf("%s\n", msg.Data())
-	})
-
-	subscription, err := subscriber.Topic("foo").Subscribe(handler)
+	subscription, err := subscriber.Topic("foo").Subscribe(
+		bps.HandlerFunc(func(msg bps.SubMessage) {
+			fmt.Printf("%s\n", msg.Data())
+		}),
+	)
 	if err != nil {
 		panic(err.Error())
 	}
 	defer subscription.Close()
 
-	// block for a while:
-	time.Sleep(time.Second)
-
-	if err := subscription.Close(); err != nil {
-		panic(err.Error())
-	}
+	time.Sleep(time.Second) // wait to receive some messages
 
 	// Output:
 	// foo1
