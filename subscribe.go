@@ -108,7 +108,7 @@ func (o *SubOptions) Apply(options []SubOption) *SubOptions {
 
 	// apply some defaults:
 	if o.ErrorHandler == nil {
-		log := log.New(os.Stdout, "[bps] ", log.LstdFlags) // TODO: maybe make global?..
+		log := log.New(os.Stderr, "[bps] ", log.LstdFlags) // TODO: maybe make global?..
 		o.ErrorHandler = func(err error) { log.Println(err) }
 	}
 
