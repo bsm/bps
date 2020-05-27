@@ -218,7 +218,7 @@ func (t *subTopic) Subscribe(handler bps.Handler, _ ...bps.SubOption) (bps.Subsc
 		//       StreamingPull streams are always terminated with a non-OK status.
 		//       Note that, unlike in regular RPCs, the status here is simply an indication that the stream has been broken, not that requests are failing.
 		//       Therefore, while the StreamingPull API may have a seemingly surprising 100% error rate, this is by design.
-
+		// TODO: do not just exit, but retry. Probably, introduce `SubTopic.Subscribe(..., WithErrorHandler(...))`
 		return gsub.Receive(ctx, func(ctx context.Context, msg *native.Message) {
 			defer msg.Nack() // only first call to Ack/Nack matters, so it's safe
 
