@@ -8,6 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/bsm/bps/internal/concurrent"
+
 	native "cloud.google.com/go/pubsub"
 	"github.com/bsm/bps"
 	"google.golang.org/api/option"
@@ -182,41 +184,50 @@ type subTopic struct {
 	name   string
 }
 
-func (t *subTopic) Subscribe(ctx context.Context, handler bps.Handler, _ ...bps.SubOption) error {
+func (t *subTopic) Subscribe(handler bps.Handler, _ ...bps.SubOption) (bps.Subscription, error) {
 	// usual way to "unsubscribe" from Google PubSub is to cancel context:
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	ctx, cancel := context.WithCancel(context.Background())
 
-	sub, err := t.client.CreateSubscription(ctx, bps.GenClientID(), native.SubscriptionConfig{
+	gsub, err := t.client.CreateSubscription(ctx, bps.GenClientID(), native.SubscriptionConfig{
 		Topic: t.client.Topic(t.name),
 	})
 	if err != nil {
-		return err
+		cancel()
+		return nil, err
 	}
-	defer func() {
-		// give subscription 5s to delete:
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
+	sub := concurrent.NewGroup(ctx)
+
+	sub.Go(func() error {
+		defer func() {
+			// give subscription 5s to delete:
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
+			_ = gsub.Delete(ctx)
+		}()
+
 		defer cancel()
 
-		_ = sub.Delete(ctx)
-	}()
+		// gsub.Receive calls handler concurrently from multiple goroutines, so synchronise it:
+		handler = &syncHandler{Handler: handler}
 
-	// sub.Receive calls handler concurrently from multiple goroutines, so synchronise it:
-	handler = &syncHandler{Handler: handler}
+		// TODO: may need to suppress sub.Receive's err:
+		//       pubsub native lib is based on streaming pull, which is expected to terminate with error:
+		//       https://cloud.google.com/pubsub/docs/pull#streamingpull_has_a_100_error_rate_this_is_to_be_expected
+		//       StreamingPull streams are always terminated with a non-OK status.
+		//       Note that, unlike in regular RPCs, the status here is simply an indication that the stream has been broken, not that requests are failing.
+		//       Therefore, while the StreamingPull API may have a seemingly surprising 100% error rate, this is by design.
 
-	// TODO: may need to suppress sub.Receive's err:
-	//       pubsub native lib is based on streaming pull, which is expected to terminate with error:
-	//       https://cloud.google.com/pubsub/docs/pull#streamingpull_has_a_100_error_rate_this_is_to_be_expected
-	//       StreamingPull streams are always terminated with a non-OK status.
-	//       Note that, unlike in regular RPCs, the status here is simply an indication that the stream has been broken, not that requests are failing.
-	//       Therefore, while the StreamingPull API may have a seemingly surprising 100% error rate, this is by design.
+		return gsub.Receive(ctx, func(ctx context.Context, msg *native.Message) {
+			defer msg.Nack() // only first call to Ack/Nack matters, so it's safe
 
-	return sub.Receive(ctx, func(ctx context.Context, msg *native.Message) {
-		defer msg.Nack() // only first call to Ack/Nack matters, so it's safe
-
-		handler.Handle(bps.RawSubMessage(msg.Data))
-		msg.Ack() // no error returned, msg will be re-delivered on Ack failure
+			handler.Handle(bps.RawSubMessage(msg.Data))
+			msg.Ack() // no error returned, msg will be re-delivered on Ack failure
+		})
 	})
+
+	return sub, nil
 }
 
 // ----------------------------------------------------------------------------
