@@ -242,13 +242,13 @@ func (t *subTopic) Subscribe(handler bps.Handler, options ...bps.SubOption) (bps
 			return nil, fmt.Errorf("consume %s/%d partition: %w", t.name, partition, err)
 		}
 
-		sub.Go(func() error {
+		sub.Go(func() {
 			defer pc.Close()
 
 			for {
 				select {
 				case <-sub.Done():
-					return nil
+					return
 
 				// TODO: what if one partition errors and it's Messages() chan is closed? Should we (try to) restart it?
 				case msg := <-pc.Messages():

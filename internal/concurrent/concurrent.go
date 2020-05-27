@@ -20,9 +20,9 @@ type Group struct {
 // Usage:
 //
 //   threads := concurrent.NewGroup(ctx)
-//   threads.Go(func() error {
+//   threads.Go(func() {
 //     <-threads.Done() // "subscribe" for cancellation
-//     return nil
+//     ...
 //   })
 //   err := threads.Close() // may be defer-ed etc - blocks till all threads terminate
 //
@@ -34,6 +34,15 @@ func NewGroup(ctx context.Context) *Group {
 		Context: ctx,
 		cancel:  cancel,
 	}
+}
+
+// Go runs func in backround.
+// Func should return when Group.Context is cancelled/done.
+func (g *Group) Go(f func()) {
+	g.Group.Go(func() error {
+		f()
+		return nil
+	})
 }
 
 // Close cancels context and waits for threads to terminate.

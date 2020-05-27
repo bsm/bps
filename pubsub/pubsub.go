@@ -198,7 +198,7 @@ func (t *subTopic) Subscribe(handler bps.Handler, _ ...bps.SubOption) (bps.Subsc
 
 	sub := concurrent.NewGroup(ctx)
 
-	sub.Go(func() error {
+	sub.Go(func() {
 		defer func() {
 			// give subscription 5s to delete:
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -218,13 +218,15 @@ func (t *subTopic) Subscribe(handler bps.Handler, _ ...bps.SubOption) (bps.Subsc
 		//       StreamingPull streams are always terminated with a non-OK status.
 		//       Note that, unlike in regular RPCs, the status here is simply an indication that the stream has been broken, not that requests are failing.
 		//       Therefore, while the StreamingPull API may have a seemingly surprising 100% error rate, this is by design.
-		// TODO: do not just exit, but retry. Probably, introduce `SubTopic.Subscribe(..., WithErrorHandler(...))`
-		return gsub.Receive(ctx, func(ctx context.Context, msg *native.Message) {
+
+		// Receive returns on fatal/non-retryable errors, so thread is terminated after it, no retries:
+		err = gsub.Receive(ctx, func(ctx context.Context, msg *native.Message) {
 			defer msg.Nack() // only first call to Ack/Nack matters, so it's safe
 
 			handler.Handle(bps.RawSubMessage(msg.Data))
 			msg.Ack() // no error returned, msg will be re-delivered on Ack failure
 		})
+		_ = err // TODO: handle it with smth like opts.ErrorHandler
 	})
 
 	return sub, nil

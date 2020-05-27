@@ -142,33 +142,32 @@ type SubTopic string
 
 // Subscribe subscribes/consumes records from file.
 func (t SubTopic) Subscribe(handler bps.Handler, _ ...bps.SubOption) (bps.Subscription, error) {
+	f, err := os.Open(string(t))
+	if err != nil {
+		return nil, err
+	}
+
 	sub := concurrent.NewGroup(context.Background())
 
-	sub.Go(func() error {
-		f, err := os.Open(string(t))
-		if os.IsNotExist(err) {
-			return nil
-		} else if err != nil {
-			return err
-		}
+	sub.Go(func() {
 		defer f.Close()
 
 		dec := json.NewDecoder(f)
 		for dec.More() {
 			select {
 			case <-sub.Done():
-				return nil
+				return
 			default:
 			}
 
 			var msg subMessage
 			if err := dec.Decode(&msg); err != nil {
-				return err
+				_ = err // TODO: handle error with opts.ErrorHandler or so!
+				continue
 			}
 
 			handler.Handle(msg)
 		}
-		return nil
 	})
 
 	return sub, nil

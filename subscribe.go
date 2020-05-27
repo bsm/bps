@@ -227,17 +227,18 @@ func NewInMemSubTopic(msgs []SubMessage) *InMemSubTopic {
 func (s *InMemSubTopic) Subscribe(handler Handler, _ ...SubOption) (Subscription, error) {
 	sub := concurrent.NewGroup(context.Background())
 
-	sub.Go(func() error {
+	sub.Go(func() {
 		for {
 			select {
 			case <-sub.Done():
-				return nil
+				return
 			default:
 			}
 
 			msg, ok := s.shiftMessage()
 			if !ok {
-				return nil
+				// no more messages, OK to return now
+				return
 			}
 
 			handler.Handle(msg)
