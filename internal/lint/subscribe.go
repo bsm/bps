@@ -2,7 +2,6 @@ package lint
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -60,29 +59,6 @@ func Subscriber(input *SubscriberInput) {
 		Ω.Eventually(handler.Len).Should(Ω.Equal(2))
 		Ω.Expect(handler.Data()).To(Ω.ConsistOf("message-1", "message-2"))
 	})
-
-	ginkgo.It("should stop on bps.Done", func() {
-		// allow error wrapping:
-		handler.Err = fmt.Errorf("wrapped %w", bps.Done)
-
-		Ω.Expect(subject.Topic(topic).Subscribe(ctx, handler, bps.StartAt(bps.PositionOldest))).To(Ω.Succeed())
-
-		// only one (first received) message handled before error is returned:
-		Ω.Expect(handler.Len()).To(Ω.Equal(1))
-	})
-
-	ginkgo.It("should return handler error", func() {
-		expectedErr := errors.New("foo")
-		handler.Err = expectedErr
-
-		actualErr := subject.Topic(topic).Subscribe(ctx, handler, bps.StartAt(bps.PositionOldest))
-
-		// allow error wrapping:
-		Ω.Expect(errors.Is(actualErr, expectedErr)).To(Ω.BeTrue())
-
-		// only one (first received) message handled - before error is returned:
-		Ω.Expect(handler.Len()).To(Ω.Equal(1))
-	})
 }
 
 // ----------------------------------------------------------------------------
@@ -90,16 +66,12 @@ func Subscriber(input *SubscriberInput) {
 type mockHandler struct {
 	mu   sync.RWMutex
 	data []string
-
-	Err error // error to return after handling (first) message
 }
 
-func (h *mockHandler) Handle(msg bps.SubMessage) error {
+func (h *mockHandler) Handle(msg bps.SubMessage) {
 	h.mu.Lock()
 	h.data = append(h.data, string(msg.Data()))
 	h.mu.Unlock()
-
-	return h.Err
 }
 
 func (h *mockHandler) Data() []string {

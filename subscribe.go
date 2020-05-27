@@ -2,7 +2,6 @@ package bps
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/url"
 	"sync"
@@ -12,15 +11,6 @@ var (
 	subReg   = map[string]SubscriberFactory{}
 	subRegMu sync.Mutex
 )
-
-// ----------------------------------------------------------------------------
-
-type done string
-
-func (s done) Error() string { return string(s) }
-
-// Done is intended to communicate "stop operation" from callbacks.
-const Done = done("done")
 
 // ----------------------------------------------------------------------------
 
@@ -43,15 +33,15 @@ func (m RawSubMessage) Data() []byte {
 // Handler defines a message handler.
 // Consuming can be stopped by returning bps.Done.
 type Handler interface {
-	Handle(SubMessage) error
+	Handle(SubMessage)
 }
 
 // HandlerFunc is a func-based handler adapter.
-type HandlerFunc func(SubMessage) error
+type HandlerFunc func(SubMessage)
 
 // Handle handles a single message.
-func (f HandlerFunc) Handle(msg SubMessage) error {
-	return f(msg)
+func (f HandlerFunc) Handle(msg SubMessage) {
+	f(msg)
 }
 
 // ----------------------------------------------------------------------------
@@ -113,7 +103,7 @@ func StartAt(pos StartPosition) SubOption {
 
 // SubTopic defines a subscriber topic handle.
 type SubTopic interface {
-	// Subscribe subscribes for topic messages and blocks till context is cancelled or error occurs or bps.Done is returned.
+	// Subscribe subscribes for topic messages and blocks till context is cancelled.
 	// Messages are guaranteed to be handled synchronously (handler is never called concurrently).
 	Subscribe(ctx context.Context, handler Handler, opts ...SubOption) error
 }
@@ -221,11 +211,7 @@ func (s *InMemSubTopic) Subscribe(ctx context.Context, handler Handler, _ ...Sub
 			return nil
 		}
 
-		if err := handler.Handle(msg); errors.Is(err, Done) {
-			return nil
-		} else if err != nil {
-			return err
-		}
+		handler.Handle(msg)
 	}
 }
 

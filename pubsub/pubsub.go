@@ -3,7 +3,6 @@ package pubsub
 
 import (
 	"context"
-	"errors"
 	"net/url"
 	"sync"
 	"sync/atomic"
@@ -11,7 +10,6 @@ import (
 
 	native "cloud.google.com/go/pubsub"
 	"github.com/bsm/bps"
-	"go.uber.org/multierr"
 	"google.golang.org/api/option"
 )
 
@@ -203,21 +201,8 @@ func (t *subTopic) Subscribe(ctx context.Context, handler bps.Handler, _ ...bps.
 		_ = sub.Delete(ctx)
 	}()
 
-	// sub.Receive calls f concurrently from multiple goroutines
-	psHandler := &pubsubHandler{Handler: handler}
-	handler = psHandler // reassign original handler not to call it by mistake
-
-	err = sub.Receive(ctx, func(ctx context.Context, msg *native.Message) {
-		defer msg.Nack() // only first call to Ack/Nack matters, so it's safe
-
-		if err := handler.Handle(bps.RawSubMessage(msg.Data)); err != nil {
-			cancel() // unsubscribe on any error
-			if !errors.Is(err, bps.Done) {
-				return // do not proceed with Ack-ing
-			}
-		}
-		msg.Ack() // no error returned, msg will be re-delivered on Ack failure
-	})
+	// sub.Receive calls handler concurrently from multiple goroutines, so synchronise it:
+	handler = &syncHandler{Handler: handler}
 
 	// TODO: may need to suppress sub.Receive's err:
 	//       pubsub native lib is based on streaming pull, which is expected to terminate with error:
@@ -226,33 +211,25 @@ func (t *subTopic) Subscribe(ctx context.Context, handler bps.Handler, _ ...bps.
 	//       Note that, unlike in regular RPCs, the status here is simply an indication that the stream has been broken, not that requests are failing.
 	//       Therefore, while the StreamingPull API may have a seemingly surprising 100% error rate, this is by design.
 
-	return multierr.Combine(err, psHandler.LastErr()) // nil errs are ignored my multierr
+	return sub.Receive(ctx, func(ctx context.Context, msg *native.Message) {
+		defer msg.Nack() // only first call to Ack/Nack matters, so it's safe
+
+		handler.Handle(bps.RawSubMessage(msg.Data))
+		msg.Ack() // no error returned, msg will be re-delivered on Ack failure
+	})
 }
 
 // ----------------------------------------------------------------------------
 
-// pubsubHandler is a thread-safe handler, that captures non-nil/non-bps.Done errors.
-type pubsubHandler struct {
-	mu      sync.Mutex
-	lastErr error // last non-nil/non-bps.Done error
+// syncHandler is a thread-safe handler, that captures non-nil/non-bps.Done errors.
+type syncHandler struct {
+	mu sync.Mutex
 
 	Handler bps.Handler
 }
 
-func (h *pubsubHandler) Handle(msg bps.SubMessage) error {
+func (h *syncHandler) Handle(msg bps.SubMessage) {
 	h.mu.Lock()
-	defer h.mu.Unlock()
-
-	err := h.Handler.Handle(msg)
-	if err != nil && !errors.Is(err, bps.Done) {
-		h.lastErr = err
-	}
-	return err
-}
-
-func (h *pubsubHandler) LastErr() error {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
-	return h.lastErr
+	h.Handler.Handle(msg)
+	h.mu.Unlock()
 }

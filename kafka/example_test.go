@@ -32,12 +32,11 @@ func ExampleSubscriber() {
 	ctx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
 
-	// will block till context is cancelled or handler returns error:
+	// will block till context is cancelled:
 	err = sub.Topic("topic").Subscribe(
 		ctx,
-		bps.HandlerFunc(func(msg bps.SubMessage) error {
+		bps.HandlerFunc(func(msg bps.SubMessage) {
 			_, _ = fmt.Printf("%s\n", string(msg.Data()))
-			return nil // or bps.Done to unsubscribe
 		}),
 		bps.StartAt(bps.PositionOldest),
 	)
