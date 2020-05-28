@@ -22,7 +22,6 @@ matrix:
       ruby:
         - 2.6
         - 2.7
-      gemfile: ruby/Gemfile
       env:
         - KAFKA_ADDRS=:9092
       services:
@@ -33,3 +32,4 @@ matrix:
       before_script:
         - docker-compose -f testdata/docker-compose.yml up -d
         - cd ruby
+        - bundle install --jobs=3 --retry=3
