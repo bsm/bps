@@ -10,16 +10,10 @@ run_spec = \
     false
   end
 
-read_messages = proc do |topic_name, num_messages|
-  Kafka.new(kafka_addrs).each_message(topic: topic_name).take(num_messages)
-end
-
 RSpec.describe BPS::Kafka::ReliablePublisher, if: run_spec do
-  subject do
-    described_class.new(kafka_addrs)
+  it_behaves_like 'publisher', url: "kafka://#{CGI.escape(kafka_addrs_str)}/" do
+    def read_messages
+      Kafka.new(kafka_addrs).each_message(topic: topic_name).take(num_messages)
+    end
   end
-
-  it_behaves_like 'publisher',
-                  read_messages: read_messages,
-                  url: "kafka://#{CGI.escape(kafka_addrs_str)}/"
 end
