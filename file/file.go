@@ -141,7 +141,9 @@ func (s *fileSub) Close() error {
 type SubTopic string
 
 // Subscribe subscribes/consumes records from file.
-func (t SubTopic) Subscribe(handler bps.Handler, _ ...bps.SubOption) (bps.Subscription, error) {
+func (t SubTopic) Subscribe(handler bps.Handler, options ...bps.SubOption) (bps.Subscription, error) {
+	opts := (&bps.SubOptions{}).Apply(options)
+
 	f, err := os.Open(string(t))
 	if err != nil {
 		return nil, err
@@ -162,7 +164,7 @@ func (t SubTopic) Subscribe(handler bps.Handler, _ ...bps.SubOption) (bps.Subscr
 
 			var msg subMessage
 			if err := dec.Decode(&msg); err != nil {
-				_ = err // TODO: handle error with opts.ErrorHandler or so!
+				opts.ErrorHandler(err)
 				continue
 			}
 
