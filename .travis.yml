@@ -22,6 +22,7 @@ matrix:
       ruby:
         - 2.6
         - 2.7
+      gemfile: ruby/Gemfile
       env:
         - KAFKA_ADDRS=:9092
       services:
