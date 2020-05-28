@@ -7,8 +7,8 @@ Gem::Specification.new do |s|
   s.summary     = 'Kafka adapter for bps'
   s.description = 'https://github.com/bsm/bps'
 
-  s.authors     = ['Dimitrij Denissenko']
-  s.email       = 'dimitrij@blacksquaremedia.com'
+  s.authors     = ['Black Square Media']
+  s.email       = 'development@blacksquaremedia.com'
   s.homepage    = 'https://github.com/bsm/bps'
 
   s.executables   = []

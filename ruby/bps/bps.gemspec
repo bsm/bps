@@ -7,8 +7,8 @@ Gem::Specification.new do |s|
   s.summary     = 'Multi-platform pubsub adapter'
   s.description = 'Minimalist abstraction for publish-subscribe'
 
-  s.authors     = ['Dimitrij Denissenko']
-  s.email       = 'dimitrij@blacksquaremedia.com'
+  s.authors     = ['Black Square Media']
+  s.email       = 'development@blacksquaremedia.com'
   s.homepage    = 'https://github.com/bsm/bps'
 
   s.executables   = []
