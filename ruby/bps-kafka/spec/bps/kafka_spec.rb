@@ -1,6 +1,5 @@
-kafka_addrs = %w[127.0.0.1:9092]
-kafka_addrs = %w[localhost:9092]
-kafka_addrs = %w[:9092]
+kafka_addrs_str = ENV.fetch('KAFKA_ADDRS', ':9092')
+kafka_addrs = kafka_addrs_str.split(',').freeze
 
 run_spec = \
   begin
@@ -22,5 +21,5 @@ RSpec.describe BPS::Kafka::ReliablePublisher, if: run_spec do
 
   it_behaves_like 'publisher',
                   read_messages: read_messages,
-                  url: "kafka://#{CGI.escape(kafka_addrs.join(','))}/"
+                  url: "kafka://#{CGI.escape(kafka_addrs_str)}/"
 end

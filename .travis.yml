@@ -1,18 +1,33 @@
-language: go
-go:
-  - 1.13.x
-  - 1.14.x
-env:
-  - GO111MODULE=on
-services:
-  - docker
-install:
-  - docker --version
-  - docker-compose --version
-before_script:
-  - docker-compose -f testdata/docker-compose.yml up -d
-script:
-  - make vet test-verbose
-cache:
-  directories:
-    - $GOPATH/pkg/mod
+matrix:
+  include:
+    - language: go
+      go:
+        - 1.13.x
+        - 1.14.x
+      env:
+        - GO111MODULE=on
+      services:
+        - docker
+      install:
+        - docker --version
+        - docker-compose --version
+      before_script:
+        - docker-compose -f testdata/docker-compose.yml up -d
+      script:
+        - make vet test-verbose
+      cache:
+        directories:
+          - $GOPATH/pkg/mod
+    - language: ruby
+      ruby:
+        - 2.7
+      env:
+        - KAFKA_ADDRS=:9092
+      services:
+        - docker
+      install:
+        - docker --version
+        - docker-compose --version
+      before_script:
+        - docker-compose -f testdata/docker-compose.yml up -d
+        - cd ruby
