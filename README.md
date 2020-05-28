@@ -1,28 +1,42 @@
 # BPS
 
-[![GoDoc](https://godoc.org/github.com/bsm/bps?status.svg)](https://godoc.org/github.com/bsm/bps)
 [![Build Status](https://travis-ci.org/bsm/bps.svg?branch=master)](https://travis-ci.org/bsm/bps)
+
+[![GoDoc](https://godoc.org/github.com/bsm/bps?status.svg)](https://pkg.go.dev/github.com/bsm/bps?tab=doc)
 [![Go Report Card](https://goreportcard.com/badge/github.com/bsm/bps)](https://goreportcard.com/report/github.com/bsm/bps)
 
-Multi-backend abstraction for message processing and pubsub queues.
+[TODO: rubygems/rubydoc badges when published]
+
+Multi-backend abstraction for message processing and pubsub queues for Go and Ruby.
 
 ## Documentation
 
-For documentation and examples, please see https://godoc.org/github.com/bsm/bps.
+Check auto-generated documentation:
+
+- go: [GoDoc](https://pkg.go.dev/github.com/bsm/bps)
+- ruby: TODO (rubydoc link(s) once gem published)
 
 ## Install
 
 ```shell
+# go:
 go get -u github.com/bsm/bps
+
+# ruby:
+bundle add 'bps-kafka'
 ```
 
-## Backends
+## Backends: Go
 
-* [Google PubSub](https://godoc.org/github.com/bsm/bps/pubsub)
-* [File](https://godoc.org/github.com/bsm/bps/file)
-* [Kafka](https://godoc.org/github.com/bsm/bps/kafka)
+- [Google PubSub](https://godoc.org/github.com/bsm/bps/pubsub)
+- [File](https://godoc.org/github.com/bsm/bps/file)
+- [Kafka](https://godoc.org/github.com/bsm/bps/kafka)
 
-## Publishing
+## Backends: Ruby
+
+- TODO: bps-kafka rubydoc link
+
+## Publishing: Go
 
 ```go
 package main
@@ -52,13 +66,27 @@ func main() {
 		Data: []byte("message-2"),
 	})
 
-	fmt.Println(len(topicA.(*bps.InMemTopic).Messages()))
-	fmt.Println(len(topicB.(*bps.InMemTopic).Messages()))
+	fmt.Println(len(topicA.(*bps.InMemPubTopic).Messages()))
+	fmt.Println(len(topicB.(*bps.InMemPubTopic).Messages()))
 
 }
 ```
 
-## Subscribing
+## Publishing: Ruby
+
+```ruby
+require 'bps/kafka'
+
+pub = BPS.resolve_publisher('kafka://localhost%3A9092,localhost%3A9093,localhost%3A9094')
+top = pub.topic('topic')
+
+top.publish('foo')
+top.publish('bar')
+
+pub.close
+```
+
+## Subscribing: Go
 
 ```go
 package main
@@ -88,8 +116,14 @@ func main() {
 		Data: []byte("message-2"),
 	})
 
-	fmt.Println(len(topicA.(*bps.InMemTopic).Messages()))
-	fmt.Println(len(topicB.(*bps.InMemTopic).Messages()))
+	fmt.Println(len(topicA.(*bps.InMemPubTopic).Messages()))
+	fmt.Println(len(topicB.(*bps.InMemPubTopic).Messages()))
 
 }
+```
+
+### Subscribing: Ruby
+
+```ruby
+# TODO
 ```
