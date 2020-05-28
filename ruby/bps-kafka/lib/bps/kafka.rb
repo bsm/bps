@@ -4,33 +4,51 @@ require 'kafka'
 module BPS
   module Kafka
     # ReliablePublisher is a slow, but reliable Kafka Publisher.
-    # There is no batching at all, messages are emitted synchronously.
+    # There is no batching at all, messages are delivered one by one.
     class ReliablePublisher < BPS::Publisher::Abstract
-      DELIVER_MESSAGE_RETRIES = 3 # 1 by kafka-ruby's Kafka::Client default, increase slightly
-
       class Topic < BPS::Publisher::Topic::Abstract
-        def initialize(client, topic_name)
-          @client = client
-          @topic_name = topic_name
+        def initialize(producer, topic_name, opts = {})
+          @producer = producer
+          @opts = opts.merge(topic: topic_name)
         end
 
         def publish(msg_data)
-          @client.deliver_message(msg_data, topic: @topic_name, retries: DELIVER_MESSAGE_RETRIES)
+          @producer.produce(msg_data, **@opts)
+          @producer.deliver_messages
           nil
         end
       end
+      private_constant :Topic
 
-      def initialize(seed_brokers, client_id: nil)
-        @client = ::Kafka.new(seed_brokers, client_id: client_id)
+      def initialize(seed_brokers, opts = {})
+        @producer_opts = extract_prefixed_opts!(opts, 'producer_')
+        @produce_opts = extract_prefixed_opts!(opts, 'produce_')
+
+        @client = ::Kafka.new(seed_brokers, **opts)
       end
 
       def topic(name)
-        Topic.new(@client, name)
+        producer = @client.producer(**@producer_opts)
+        Topic.new(producer, name, **@produce_opts)
       end
 
       def close
         @client.close
         nil
+      end
+
+      private
+
+      # changes passed opts, returns sub-opts that start with given `prefix` (with `prefix` removed)
+      def extract_prefixed_opts!(opts, prefix)
+        {}.tap do |extracted|
+          opts.delete_if do |name, value|
+            next unless name.delete_prefix!(prefix)
+
+            extracted[name] = value
+            true
+          end
+        end
       end
     end
   end
