@@ -27,9 +27,9 @@ RSpec.describe BPS::Kafka::ReliablePublisher, if: run_spec do
   it_behaves_like 'publisher', url: "kafka://#{CGI.escape(kafka_addrs_str)}/" do
     def read_messages(topic_name, num_messages)
       client = Kafka.new(kafka_addrs)
-      messages = each_kafka_message(client, topic_name).take(num_messages)
-      client.close
-      messages
+      each_kafka_message(client, topic_name).take(num_messages)
+    ensure
+      client&.close
     end
   end
 end

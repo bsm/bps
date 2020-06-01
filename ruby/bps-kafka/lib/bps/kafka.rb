@@ -7,48 +7,38 @@ module BPS
     # There is no batching at all, messages are delivered one by one.
     class ReliablePublisher < BPS::Publisher::Abstract
       class Topic < BPS::Publisher::Topic::Abstract
-        def initialize(producer, topic_name, opts = {})
+        def initialize(producer, topic_name)
           @producer = producer
-          @opts = opts.merge(topic: topic_name)
+          @opts = { topic: topic_name }
         end
 
-        def publish(msg_data)
-          @producer.produce(msg_data, **@opts)
+        def publish(msg_data, **opts)
+          @producer.produce(msg_data, **@opts, **opts)
           @producer.deliver_messages
           nil
+        end
+
+        # meant for internal use
+        # TODO: make a part of topic "interface"?
+        def _close
+          @producer.shutdown
         end
       end
       private_constant :Topic
 
-      def initialize(seed_brokers, opts = {})
-        @producer_opts = extract_prefixed_opts!(opts, 'producer_')
-        @produce_opts = extract_prefixed_opts!(opts, 'produce_')
-
+      def initialize(seed_brokers, **opts)
         @client = ::Kafka.new(seed_brokers, **opts)
+        @topics = {}
       end
 
       def topic(name)
-        producer = @client.producer(**@producer_opts)
-        Topic.new(producer, name, **@produce_opts)
+        @topics[name] ||= Topic.new(@client.producer, name)
       end
 
       def close
+        @topics.values.each(&:_close)
         @client.close
         nil
-      end
-
-      private
-
-      # changes passed opts, returns sub-opts that start with given `prefix` (with `prefix` removed)
-      def extract_prefixed_opts!(opts, prefix)
-        {}.tap do |extracted|
-          opts.delete_if do |name, value|
-            next unless name.delete_prefix!(prefix)
-
-            extracted[name] = value
-            true
-          end
-        end
       end
     end
   end
