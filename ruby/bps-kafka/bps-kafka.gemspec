@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'bps-kafka'
-  s.version     = File.read(File.expand_path('../.version', __dir__)).strip
+  s.version     = File.read(File.expand_path('../../.version', __dir__)).strip
   s.platform    = Gem::Platform::RUBY
 
   s.licenses    = ['Apache-2.0']
@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.description = 'https://github.com/bsm/bps'
 
   s.authors     = ['Black Square Media']
-  s.email       = 'development@blacksquaremedia.com'
+  s.email       = 'info@blacksquaremedia.com'
   s.homepage    = 'https://github.com/bsm/bps'
 
   s.executables   = []
@@ -18,5 +18,5 @@ Gem::Specification.new do |s|
   s.required_ruby_version = '>= 2.6.0'
 
   s.add_dependency 'bps', s.version
-  s.add_dependency 'ruby-kafka', '1.1.0.beta1'
+  s.add_dependency 'ruby-kafka', '>= 1.1.0.beta1'
 end

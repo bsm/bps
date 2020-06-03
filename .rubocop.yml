@@ -6,3 +6,7 @@ AllCops:
 
 Metrics/ParameterLists:
   Max: 8
+
+Metrics/MethodLength:
+  Exclude:
+    - "ruby/bps/lib/bps/coercer.rb"

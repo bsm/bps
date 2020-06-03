@@ -12,7 +12,7 @@ RSpec.shared_examples 'publisher' do |features|
   end
 
   subject do
-    BPS.resolve_publisher(features[:url])
+    BPS::Publisher.resolve(features[:url])
   end
 
   after do
@@ -25,12 +25,13 @@ RSpec.shared_examples 'publisher' do |features|
 
   it 'should publish' do
     topic_name = "bps-test-topic-#{SecureRandom.uuid}"
-    seed_messages = 3.times.map { "bps-test-message-#{SecureRandom.uuid}" }
+    messages = 3.times.map { "bps-test-message-#{SecureRandom.uuid}" }
 
     topic = subject.topic(topic_name)
-    seed_messages.each {|msg| topic.publish(msg) }
+    messages.each {|msg| topic.publish(msg) }
+    subject.close
 
-    published_messages = read_messages(topic_name, seed_messages.count)
-    expect(published_messages).to match_array(seed_messages)
+    published = read_messages(topic_name, messages.count)
+    expect(published).to match_array(messages)
   end
 end

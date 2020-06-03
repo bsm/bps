@@ -77,7 +77,7 @@ func main() {
 ```ruby
 require 'bps/kafka'
 
-pub = BPS.resolve_publisher('kafka://localhost%3A9092,localhost%3A9093,localhost%3A9094')
+pub = BPS::Publisher.resolve('kafka://localhost%3A9092,localhost%3A9093,localhost%3A9094')
 top = pub.topic('topic')
 
 top.publish('foo')
