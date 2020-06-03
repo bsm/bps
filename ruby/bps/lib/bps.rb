@@ -17,7 +17,7 @@ module BPS
       class Abstract
         # def initialize; end
 
-        def publish(_msg_data)
+        def publish(_msg_data, **_opts)
           raise 'not implemented'
         end
       end

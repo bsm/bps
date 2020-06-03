@@ -1,6 +1,8 @@
 require 'securerandom'
 
 RSpec.shared_examples 'publisher' do |features|
+  # read_messages must read message data (as array of strings/byte-slices) from given `_topic_name`.
+  # `_num_messages` tells how many messages were produced to given `_topic_name`.
   def read_messages(_topic_name, _num_messages)
     raise 'must be overridden'
   end
@@ -10,7 +12,7 @@ RSpec.shared_examples 'publisher' do |features|
   end
 
   subject do
-    BFS.resolve_publisher(features[:url])
+    BPS.resolve_publisher(features[:url])
   end
 
   after do
@@ -28,7 +30,7 @@ RSpec.shared_examples 'publisher' do |features|
     topic = subject.topic(topic_name)
     seed_messages.each {|msg| topic.publish(msg) }
 
-    published_messages = features[:read_messages].call(topic_name)
-    expect(published_messages).to match_array(seed_messages, seed_messages.count)
+    published_messages = read_messages(topic_name, seed_messages.count)
+    expect(published_messages).to match_array(seed_messages)
   end
 end
