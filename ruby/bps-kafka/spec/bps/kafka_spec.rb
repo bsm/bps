@@ -1,5 +1,5 @@
 require 'spec_helper'
-require 'kafka'
+require 'bps/kafka'
 
 def kafka_addrs
   ENV.fetch('KAFKA_ADDRS', '127.0.0.1:9092').split(',').freeze

@@ -1,5 +1,4 @@
 require 'bps/kafka'
-require 'kafka'
 
 module BPS
   module Publisher
@@ -70,7 +69,10 @@ module BPS
         max_queue_size: :int,
       }.freeze
 
-      COERCER = BPS::Coercer.new(CLIENT_OPTS.merge(PRODUCER_OPTS)).freeze
+      # @return [BPS::Coercer] the options coercer.
+      def self.coercer
+        @coercer ||= BPS::Coercer.new(CLIENT_OPTS.merge(PRODUCER_OPTS)).freeze
+      end
 
       # @param [Array<String>] brokers the seed broker addresses.
       # @param [Hash] opts the options.
