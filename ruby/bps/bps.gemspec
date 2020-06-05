@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'bps'
-  s.version     = File.read(File.expand_path('../.version', __dir__)).strip
+  s.version     = File.read(File.expand_path('../../.version', __dir__)).strip
   s.platform    = Gem::Platform::RUBY
 
   s.licenses    = ['Apache-2.0']
@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.description = 'Minimalist abstraction for publish-subscribe'
 
   s.authors     = ['Black Square Media']
-  s.email       = 'development@blacksquaremedia.com'
+  s.email       = 'info@blacksquaremedia.com'
   s.homepage    = 'https://github.com/bsm/bps'
 
   s.executables   = []

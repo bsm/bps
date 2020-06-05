@@ -3,8 +3,8 @@
 source 'https://rubygems.org'
 
 group :development, :test do
-  gem 'bps', path: './bps'
-  gem 'bps-kafka', path: './bps-kafka'
+  gem 'bps', path: './ruby/bps'
+  gem 'bps-kafka', path: './ruby/bps-kafka'
 
   gem 'rake'
   gem 'rspec'
