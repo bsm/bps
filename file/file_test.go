@@ -11,11 +11,8 @@ import (
 	"github.com/bsm/bps"
 	"github.com/bsm/bps/file"
 	"github.com/bsm/bps/internal/lint"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	_ "github.com/bsm/bps/file"
 )
 
 var _ = Describe("Publisher", func() {

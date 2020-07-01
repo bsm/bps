@@ -9,6 +9,19 @@
 //   client.id
 //      A user-provided string sent with every request to the brokers for logging debugging, and auditing
 //      purposes.
+//   rack.id
+//      A rack identifier for this client. This can be any string value which indicates where this client
+//      is physically located. It corresponds with the broker config 'broker.rack'.
+//   net.max.requests
+//      How many outstanding requests a connection is allowed to have before sending on it blocks (default 5).
+//   net.dial.timeout
+//      How long to wait for the initial connection (default 30s).
+//   net.read.timeout
+//      How long to wait for a response (default 30s).
+//   net.write.timeout
+//      How long to wait for for a transmit (default 30s).
+//   net.tls.enable
+//      Whether or not to use TLS when connecting to the broker (defaults to false).
 //   kafka.version
 //      The version of the kafka server.
 //   channel.buffer.size
