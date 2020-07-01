@@ -134,12 +134,9 @@ func convertMessage(topic string, msg *bps.PubMessage) *sarama.ProducerMessage {
 
 	var headers []sarama.RecordHeader
 	if n := len(msg.Attributes); n != 0 {
-		headers := make([]sarama.RecordHeader, 0, n)
+		headers = make([]sarama.RecordHeader, 0, n)
 		for key, val := range msg.Attributes {
-			headers = append(headers, sarama.RecordHeader{
-				Key:   []byte(key),
-				Value: []byte(val),
-			})
+			headers = append(headers, sarama.RecordHeader{Key: []byte(key), Value: []byte(val)})
 		}
 	}
 
