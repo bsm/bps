@@ -22,6 +22,10 @@ func parseAddrs(u *url.URL) []string {
 	return []string{addr}
 }
 
+func isTrueValue(v string) bool {
+	return !(v == "" || v[0] == '0' || v[0] == 'f' || v[0] == 'F' || v[0] == 'n' || v[0] == 'N')
+}
+
 func parseCommonQuery(query url.Values) *sarama.Config {
 	config := sarama.NewConfig()
 	config.ClientID = "bps-client"
@@ -29,13 +33,29 @@ func parseCommonQuery(query url.Values) *sarama.Config {
 	if v := query.Get("client.id"); v != "" {
 		config.ClientID = v
 	}
-
+	if v := query.Get("rack.id"); v != "" {
+		config.RackID = v
+	}
+	if v := query.Get("net.max.requests"); v != "" {
+		config.Net.MaxOpenRequests, _ = strconv.Atoi(v)
+	}
+	if v := query.Get("net.dial.timeout"); v != "" {
+		config.Net.DialTimeout, _ = time.ParseDuration(v)
+	}
+	if v := query.Get("net.read.timeout"); v != "" {
+		config.Net.ReadTimeout, _ = time.ParseDuration(v)
+	}
+	if v := query.Get("net.write.timeout"); v != "" {
+		config.Net.WriteTimeout, _ = time.ParseDuration(v)
+	}
+	if v := query.Get("net.tls.enable"); isTrueValue(v) {
+		config.Net.TLS.Enable = true
+	}
 	if v := query.Get("kafka.version"); v != "" {
 		if kv, err := sarama.ParseKafkaVersion(v); err == nil {
 			config.Version = kv
 		}
 	}
-
 	if v := query.Get("channel.buffer.size"); v != "" {
 		config.ChannelBufferSize, _ = strconv.Atoi(v)
 	}
@@ -114,12 +134,9 @@ func convertMessage(topic string, msg *bps.PubMessage) *sarama.ProducerMessage {
 
 	var headers []sarama.RecordHeader
 	if n := len(msg.Attributes); n != 0 {
-		headers := make([]sarama.RecordHeader, 0, n)
+		headers = make([]sarama.RecordHeader, 0, n)
 		for key, val := range msg.Attributes {
-			headers = append(headers, sarama.RecordHeader{
-				Key:   []byte(key),
-				Value: []byte(val),
-			})
+			headers = append(headers, sarama.RecordHeader{Key: []byte(key), Value: []byte(val)})
 		}
 	}
 

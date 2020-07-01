@@ -3,34 +3,32 @@ matrix:
     - language: go
       go:
         - 1.13.x
-      env:
-        - GO111MODULE=on
       services:
         - docker
       install:
         - docker --version
         - docker-compose --version
+        - go get honnef.co/go/tools/cmd/staticcheck
       before_script:
         - docker-compose -f testdata/docker-compose.yml up -d
       script:
-        - make vet test-verbose
+        - make default staticcheck
       cache:
         directories:
           - $GOPATH/pkg/mod
     - language: go
       go:
         - 1.14.x
-      env:
-        - GO111MODULE=on
       services:
         - docker
       install:
         - docker --version
         - docker-compose --version
+        - go get honnef.co/go/tools/cmd/staticcheck
       before_script:
         - docker-compose -f testdata/docker-compose.yml up -d
       script:
-        - make vet test-verbose
+        - make default staticcheck
       cache:
         directories:
           - $GOPATH/pkg/mod
@@ -49,6 +47,8 @@ matrix:
         - docker-compose -f testdata/docker-compose.yml up -d
         - cd ruby
         - bundle install --jobs=3 --retry=3
+      script:
+        - bundle exec rake
       cache: bundler
     - language: ruby
       ruby:
@@ -65,4 +65,6 @@ matrix:
         - docker-compose -f testdata/docker-compose.yml up -d
         - cd ruby
         - bundle install --jobs=3 --retry=3
+      script:
+        - bundle exec rake
       cache: bundler
