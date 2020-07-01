@@ -1,11 +1,9 @@
 # BPS
 
 [![Build Status](https://travis-ci.org/bsm/bps.svg?branch=master)](https://travis-ci.org/bsm/bps)
-
 [![GoDoc](https://godoc.org/github.com/bsm/bps?status.svg)](https://pkg.go.dev/github.com/bsm/bps?tab=doc)
 [![Go Report Card](https://goreportcard.com/badge/github.com/bsm/bps)](https://goreportcard.com/report/github.com/bsm/bps)
-
-[TODO: rubygems/rubydoc badges when published]
+[![Gem Version](https://badge.fury.io/rb/bps.svg)](https://badge.fury.io/rb/bps)
 
 Multi-backend abstraction for message processing and pubsub queues for Go and Ruby.
 
@@ -14,7 +12,7 @@ Multi-backend abstraction for message processing and pubsub queues for Go and Ru
 Check auto-generated documentation:
 
 - go: [GoDoc](https://pkg.go.dev/github.com/bsm/bps)
-- ruby: TODO (rubydoc link(s) once gem published)
+- ruby: [RubyDoc](https://www.rubydoc.info/gems/bps)
 
 ## Install
 
@@ -34,7 +32,7 @@ bundle add 'bps-kafka'
 
 ## Backends: Ruby
 
-- TODO: bps-kafka rubydoc link
+- [Kafka](https://rubygems.org/gems/bps-kafka)
 
 ## Publishing: Go
 
@@ -78,10 +76,4 @@ import (
 )
 
 func main() {{ "ExamplePublisher" | code }}
-```
-
-### Subscribing: Ruby
-
-```ruby
-# TODO
 ```

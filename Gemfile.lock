@@ -1,14 +1,14 @@
 PATH
   remote: ruby/bps-kafka
   specs:
-    bps-kafka (0.0.1)
-      bps (= 0.0.1)
+    bps-kafka (0.0.2)
+      bps (= 0.0.2)
       ruby-kafka (>= 1.1.0.beta1)
 
 PATH
   remote: ruby/bps
   specs:
-    bps (0.0.1)
+    bps (0.0.2)
 
 GEM
   remote: https://rubygems.org/
