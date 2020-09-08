@@ -3,8 +3,10 @@ require 'bps/kafka'
 module BPS
   module Publisher
     class Kafka < Abstract
-      class Topic
+      class Topic < Abstract::Topic
         def initialize(producer, topic)
+          super()
+
           @producer = producer
           @topic = topic
         end
