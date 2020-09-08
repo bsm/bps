@@ -11,6 +11,10 @@ module BPS
         def flush(**); end
       end
 
+      def initialize
+        ObjectSpace.define_finalizer(self, proc { close })
+      end
+
       # Retrieve a topic handle.
       # @params [String] name the topic name.
       def topic(_name)
