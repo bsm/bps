@@ -14,7 +14,7 @@ module BPS
           after_publish
         end
 
-        def flush
+        def flush(**)
           @producer.deliver_messages
         end
 
@@ -78,6 +78,8 @@ module BPS
       # @param [Hash] opts the options.
       # @see https://www.rubydoc.info/gems/ruby-kafka/Kafka/Client#initialize-instance_method
       def initialize(broker_addrs, **opts)
+        super()
+
         @topics   = {}
         @client   = ::Kafka.new(broker_addrs, **opts.slice(*CLIENT_OPTS.keys))
         @producer = init_producer(**opts.slice(*PRODUCER_OPTS.keys))

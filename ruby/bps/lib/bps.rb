@@ -6,6 +6,7 @@ module BPS
 
   module Publisher
     autoload :Abstract, 'bps/publisher/abstract'
+    autoload :InMem, 'bps/publisher/in_mem'
 
     def self.register(*schemes, &resolver)
       @registry ||= {}

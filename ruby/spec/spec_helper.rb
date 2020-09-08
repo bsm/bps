@@ -1,2 +1,2 @@
 require 'bps/kafka'
-require_relative './support/shared.rb'
+require_relative './support/shared'

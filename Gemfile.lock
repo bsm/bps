@@ -1,21 +1,22 @@
 PATH
   remote: ruby/bps-kafka
   specs:
-    bps-kafka (0.0.2)
-      bps (= 0.0.2)
+    bps-kafka (0.0.3)
+      bps (= 0.0.3)
       ruby-kafka (>= 1.1.0.beta1)
 
 PATH
   remote: ruby/bps
   specs:
-    bps (0.0.2)
+    bps (0.0.3)
 
 GEM
   remote: https://rubygems.org/
   specs:
     ast (2.4.1)
-    diff-lcs (1.4.3)
-    digest-crc (0.5.1)
+    diff-lcs (1.4.4)
+    digest-crc (0.6.1)
+      rake (~> 13.0)
     parallel (1.19.2)
     parser (2.7.1.4)
       ast (~> 2.4.1)
@@ -36,18 +37,18 @@ GEM
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.9.0)
     rspec-support (3.9.3)
-    rubocop (0.86.0)
+    rubocop (0.90.0)
       parallel (~> 1.10)
-      parser (>= 2.7.0.1)
+      parser (>= 2.7.1.1)
       rainbow (>= 2.2.2, < 4.0)
       regexp_parser (>= 1.7)
       rexml
-      rubocop-ast (>= 0.0.3, < 1.0)
+      rubocop-ast (>= 0.3.0, < 1.0)
       ruby-progressbar (~> 1.7)
       unicode-display_width (>= 1.4.0, < 2.0)
-    rubocop-ast (0.1.0)
-      parser (>= 2.7.0.1)
-    ruby-kafka (1.1.0)
+    rubocop-ast (0.3.0)
+      parser (>= 2.7.1.4)
+    ruby-kafka (1.2.0)
       digest-crc
     ruby-progressbar (1.10.1)
     unicode-display_width (1.7.0)

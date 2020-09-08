@@ -19,9 +19,6 @@ module BPS
       #                        trigger a delivery.
       # @option opts [Integer] :delivery_interval (defaults to: 0) if greater than zero, the number of
       #                        seconds between automatic message deliveries.
-      def initialize(broker_addrs, **opts)
-        super
-      end
 
       private
 
