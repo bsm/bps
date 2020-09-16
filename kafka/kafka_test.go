@@ -2,6 +2,7 @@ package kafka_test
 
 import (
 	"context"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -121,21 +122,13 @@ var _ = Describe("Subscriber", func() {
 // ------------------------------------------------------------------------
 
 func TestSuite(t *testing.T) {
-	if err := sandboxCheck(); err != nil {
-		t.Skipf("skipping test, no sandbox access: %v", err)
+	if !strings.Contains(os.Getenv("BPS_TEST"), "kafka") {
+		t.Skipf("skipping test")
 		return
 	}
 
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "bps/kafka")
-}
-
-func sandboxCheck() error {
-	pub, err := kafka.NewPublisher(brokerAddrs, nil)
-	if err != nil {
-		return err
-	}
-	return pub.Close()
 }
 
 func readMessages(topic string, _ int) ([]*bps.PubMessage, error) {

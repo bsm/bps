@@ -40,27 +40,34 @@ type Handler interface {
 	Handle(SubMessage)
 }
 
-// SyncHandler is a synchronized handler wrapper.
-// It is intended to be used only by subscriber implementations which need it.
-// It shouldn't be used by lib consumer.
-type SyncHandler struct {
-	sync.Mutex
-	Handler
-}
-
-// Handle synchronizes underlying Handler.Handle calls.
-func (h *SyncHandler) Handle(msg SubMessage) {
-	h.Lock()
-	h.Handler.Handle(msg)
-	h.Unlock()
-}
-
 // HandlerFunc is a func-based handler adapter.
 type HandlerFunc func(SubMessage)
 
 // Handle handles a single message.
 func (f HandlerFunc) Handle(msg SubMessage) {
 	f(msg)
+}
+
+// SafeHandler wraps a handler with a mutex to synchronize access.
+// It is intended to be used only by subscriber implementations which need it.
+// It shouldn't be used by lib consumer.
+func SafeHandler(h Handler) Handler {
+	if _, ok := h.(*safeHandler); ok {
+		return h
+	}
+	return &safeHandler{Handler: h}
+}
+
+type safeHandler struct {
+	Handler
+	mu sync.Mutex
+}
+
+// Handle synchronizes underlying Handler.Handle calls.
+func (h *safeHandler) Handle(msg SubMessage) {
+	h.mu.Lock()
+	h.Handler.Handle(msg)
+	h.mu.Unlock()
 }
 
 // ----------------------------------------------------------------------------

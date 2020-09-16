@@ -3,6 +3,8 @@ package nats_test
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/bsm/bps"
@@ -88,21 +90,13 @@ var _ = Describe("Subscriber", func() {
 // ----------------------------------------------------------------------------
 
 func TestSuite(t *testing.T) {
-	if err := sandboxCheck(); err != nil {
-		t.Skipf("skipping test, no sandbox access: %v", err)
+	if !strings.Contains(os.Getenv("BPS_TEST"), "nats") {
+		t.Skipf("skipping test")
 		return
 	}
 
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "bps/nats")
-}
-
-func sandboxCheck() error {
-	conn, err := stan.Connect(clusterID, bps.GenClientID())
-	if err != nil {
-		return err
-	}
-	return conn.Close()
 }
 
 func readMessages(topic string, count int) ([]*bps.PubMessage, error) {

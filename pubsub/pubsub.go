@@ -199,7 +199,6 @@ func (t *subTopic) Subscribe(handler bps.Handler, options ...bps.SubOption) (bps
 	}
 
 	sub := concurrent.NewGroup(ctx)
-
 	sub.Go(func() {
 		defer func() {
 			// give subscription 5s to delete:
@@ -212,7 +211,7 @@ func (t *subTopic) Subscribe(handler bps.Handler, options ...bps.SubOption) (bps
 		defer cancel()
 
 		// gsub.Receive calls handler concurrently from multiple goroutines, so synchronise it:
-		handler = &syncHandler{Handler: handler}
+		handler = bps.SafeHandler(handler)
 
 		// TODO: may need to suppress sub.Receive's err:
 		//       pubsub native lib is based on streaming pull, which is expected to terminate with error:
@@ -222,7 +221,7 @@ func (t *subTopic) Subscribe(handler bps.Handler, options ...bps.SubOption) (bps
 		//       Therefore, while the StreamingPull API may have a seemingly surprising 100% error rate, this is by design.
 
 		// Receive returns on fatal/non-retryable errors, so thread is terminated after it, no retries:
-		err = gsub.Receive(ctx, func(ctx context.Context, msg *native.Message) {
+		err := gsub.Receive(ctx, func(ctx context.Context, msg *native.Message) {
 			defer msg.Nack() // only first call to Ack/Nack matters, so it's safe
 
 			handler.Handle(bps.RawSubMessage(msg.Data))
@@ -232,19 +231,4 @@ func (t *subTopic) Subscribe(handler bps.Handler, options ...bps.SubOption) (bps
 	})
 
 	return sub, nil
-}
-
-// ----------------------------------------------------------------------------
-
-// syncHandler is a thread-safe handler, that captures non-nil/non-bps.Done errors.
-type syncHandler struct {
-	mu sync.Mutex
-
-	Handler bps.Handler
-}
-
-func (h *syncHandler) Handle(msg bps.SubMessage) {
-	h.mu.Lock()
-	h.Handler.Handle(msg)
-	h.mu.Unlock()
 }
