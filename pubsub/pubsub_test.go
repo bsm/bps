@@ -3,6 +3,7 @@ package pubsub_test
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -99,32 +100,13 @@ var _ = Describe("Subscriber", func() {
 const projectID = "bsm-tech"
 
 func TestSuite(t *testing.T) {
-	if err := sandboxCheck(); err != nil {
-		t.Skipf("skipping test, no sandbox access: %v", err)
+	if !strings.Contains(os.Getenv("BPS_TEST"), "pubsub") {
+		t.Skipf("skipping test")
 		return
 	}
 
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "bps/pubsub")
-}
-
-func sandboxCheck() error {
-	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(5*time.Second))
-	defer cancel()
-
-	psc, err := native.NewClient(ctx, projectID)
-	if err != nil {
-		return err
-	}
-	defer psc.Close()
-
-	topic, err := psc.CreateTopic(ctx, fmt.Sprintf("bps-unittest-ping-%d", time.Now().UnixNano()))
-	if err != nil {
-		return err
-	}
-	defer topic.Delete(ctx)
-
-	return nil
 }
 
 func readMessages(topic string, max int) ([]*bps.PubMessage, error) {

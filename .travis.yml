@@ -2,7 +2,9 @@ matrix:
   include:
     - language: go
       go:
-        - 1.13.x
+        - 1.14.x
+      env:
+        - BPS_TEST=kafka,nats
       services:
         - docker
       install:
@@ -12,13 +14,15 @@ matrix:
       before_script:
         - docker-compose -f testdata/docker-compose.yml up -d
       script:
-        - make default staticcheck
+        - make test-verbose staticcheck
       cache:
         directories:
           - $GOPATH/pkg/mod
     - language: go
       go:
-        - 1.14.x
+        - 1.15.x
+      env:
+        - BPS_TEST=kafka,nats
       services:
         - docker
       install:
@@ -28,7 +32,7 @@ matrix:
       before_script:
         - docker-compose -f testdata/docker-compose.yml up -d
       script:
-        - make default staticcheck
+        - make test-verbose staticcheck
       cache:
         directories:
           - $GOPATH/pkg/mod
