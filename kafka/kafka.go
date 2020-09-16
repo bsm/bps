@@ -242,34 +242,47 @@ func (t *subTopic) Subscribe(handler bps.Handler, options ...bps.SubOption) (bps
 	}
 
 	// synchronize handler access:
-	handler = &bps.SyncHandler{Handler: handler}
+	handler = bps.SafeHandler(handler)
 
-	// init closeable subscription/thread manager:
+	// init closeable subscription/thread group
 	sub := concurrent.NewGroup(context.Background())
 
 	// spawn partition-consuming threads:
 	for _, partition := range partitions {
-		pc, err := t.consumer.ConsumePartition(t.name, partition, initialOffset)
-		if err != nil {
+		if err := t.partition(sub, partition, initialOffset, handler, opts); err != nil {
 			_ = sub.Close()
 			return nil, fmt.Errorf("consume %s/%d partition: %w", t.name, partition, err)
 		}
-
-		sub.Go(func() {
-			defer pc.Close()
-
-			for {
-				select {
-				case <-sub.Done():
-					return
-
-				// TODO: what if one partition errors and it's Messages() chan is closed? Should we (try to) restart it?
-				case msg := <-pc.Messages():
-					handler.Handle(bps.RawSubMessage(msg.Value))
-				}
-			}
-		})
 	}
 
 	return sub, nil
+}
+
+func (t *subTopic) partition(sub *concurrent.Group, partition int32, initialOffset int64, handler bps.Handler, opts *bps.SubOptions) error {
+	pc, err := t.consumer.ConsumePartition(t.name, partition, initialOffset)
+	if err != nil {
+		return err
+	}
+
+	// close partition consumer when group is finished
+	sub.Go(func() {
+		defer pc.Close()
+		<-sub.Done()
+	})
+
+	// subscribe to errors
+	sub.Go(func() {
+		for err := range pc.Errors() {
+			opts.ErrorHandler(fmt.Errorf("consume %s/%d partition: %w", t.name, partition, err))
+		}
+	})
+
+	// subscribe to messages
+	sub.Go(func() {
+		for msg := range pc.Messages() {
+			handler.Handle(bps.RawSubMessage(msg.Value))
+		}
+	})
+
+	return nil
 }

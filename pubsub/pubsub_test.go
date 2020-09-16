@@ -109,7 +109,7 @@ func TestSuite(t *testing.T) {
 }
 
 func sandboxCheck() error {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(5*time.Second))
 	defer cancel()
 
 	psc, err := native.NewClient(ctx, projectID)
