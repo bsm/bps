@@ -24,7 +24,7 @@ module BPS
       CGI.parse(url.query.to_s).each do |key, values|
         opts[key.to_sym] = values.first
       end
-      rsl.call(url, opts)
+      rsl.call(url, **opts)
     end
   end
 
@@ -47,7 +47,7 @@ module BPS
       CGI.parse(url.query.to_s).each do |key, values|
         opts[key.to_sym] = values.first
       end
-      rsl.call(url, opts)
+      rsl.call(url, **opts)
     end
   end
 end

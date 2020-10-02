@@ -27,12 +27,44 @@ helper = proc do
   end
 end
 
-RSpec.describe 'Kafka', if: run_spec do
-  context BPS::Publisher::Kafka do
-    it_behaves_like 'publisher', url: "kafka+sync://#{kafka_addrs.join(',')}/", &helper
+RSpec.describe 'Kafka' do
+  context 'resolve addrs' do
+    let(:client) { double('Kafka', producer: nil) }
+    before       { allow(::Kafka).to receive(:new).and_return(client) }
+
+    it 'should resolve simple URLs' do
+      if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7')
+        expect(::Kafka).to receive(:new).with(['test.host:9092'], {}).and_return(client)
+      else
+        expect(::Kafka).to receive(:new).with(['test.host:9092']).and_return(client)
+      end
+      BPS::Publisher.resolve(URI.parse('kafka+sync://test.host:9092'))
+    end
+
+    it 'should resolve URLs with multiple hosts' do
+      if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7')
+        expect(::Kafka).to receive(:new).with(['foo.host:9092', 'bar.host:9092'], {}).and_return(client)
+      else
+        expect(::Kafka).to receive(:new).with(['foo.host:9092', 'bar.host:9092']).and_return(client)
+      end
+      BPS::Publisher.resolve(URI.parse('kafka+sync://foo.host,bar.host:9092'))
+    end
+
+    it 'should resolve URLs with multiple hosts/ports' do
+      if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7')
+        expect(::Kafka).to receive(:new).with(['foo.host:9093', 'bar.host:9092'], {}).and_return(client)
+      else
+        expect(::Kafka).to receive(:new).with(['foo.host:9093', 'bar.host:9092']).and_return(client)
+      end
+      BPS::Publisher.resolve(URI.parse('kafka+sync://foo.host%3A9093,bar.host'))
+    end
   end
 
-  context BPS::Publisher::KafkaAsync do
-    it_behaves_like 'publisher', url: "kafka://#{kafka_addrs.join(',')}/", &helper
+  context BPS::Publisher::Kafka, if: run_spec do
+    it_behaves_like 'publisher', url: "kafka+sync://#{CGI.escape(kafka_addrs.join(','))}/", &helper
+  end
+
+  context BPS::Publisher::KafkaAsync, if: run_spec do
+    it_behaves_like 'publisher', url: "kafka://#{CGI.escape(kafka_addrs.join(','))}/", &helper
   end
 end

@@ -76,14 +76,15 @@ module BPS
         @coercer ||= BPS::Coercer.new(CLIENT_OPTS.merge(PRODUCER_OPTS)).freeze
       end
 
-      # @param [Array<String>] brokers the seed broker addresses.
+      # @param [Array<String>,URI] brokers the seed broker addresses.
       # @param [Hash] opts the options.
       # @see https://www.rubydoc.info/gems/ruby-kafka/Kafka/Client#initialize-instance_method
       def initialize(broker_addrs, **opts)
         super()
 
-        @topics   = {}
-        @client   = ::Kafka.new(broker_addrs, **opts.slice(*CLIENT_OPTS.keys))
+        broker_addrs = parse_url(broker_addrs) if broker_addrs.is_a?(URI)
+        @topics = {}
+        @client = ::Kafka.new(broker_addrs, **opts.slice(*CLIENT_OPTS.keys))
         @producer = init_producer(**opts.slice(*PRODUCER_OPTS.keys))
       end
 
@@ -97,6 +98,14 @@ module BPS
       end
 
       private
+
+      def parse_url(url)
+        port = url.port&.to_s || '9092'
+        CGI.unescape(url.host).split(',').map do |addr|
+          addr << ':' << port unless addr.match(/:\d+$/)
+          addr
+        end
+      end
 
       def init_producer(**opts)
         @producer = @client.producer(**opts)
