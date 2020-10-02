@@ -75,13 +75,25 @@ func main() {
 ```ruby
 require 'bps/kafka'
 
-pub = BPS::Publisher.resolve('kafka://localhost%3A9092,localhost%3A9093,localhost%3A9094')
+pub = BPS::Publisher.resolve('kafka://localhost:9092')
 top = pub.topic('topic')
 
 top.publish('foo')
 top.publish('bar')
 
 pub.close
+```
+
+To seed multiple brokers, use:
+
+```ruby
+BPS::Publisher.resolve('kafka://10.0.0.1,10.0.0.2,10.0.0.3:9092')
+```
+
+If your brokers are on different ports, try:
+
+```ruby
+BPS::Publisher.resolve('kafka://10.0.0.1%3A9092,10.0.0.2%3A9093,10.0.0.3%3A9094')
 ```
 
 ## Subscribing: Go
