@@ -6,6 +6,13 @@ PATH
       ruby-kafka (>= 1.1.0.beta1)
 
 PATH
+  remote: ruby/bps-stan
+  specs:
+    bps-stan (0.1.1)
+      bps (= 0.1.1)
+      nats-streaming (= 0.2.2)
+
+PATH
   remote: ruby/bps
   specs:
     bps (0.1.1)
@@ -17,6 +24,11 @@ GEM
     diff-lcs (1.4.4)
     digest-crc (0.6.1)
       rake (~> 13.0)
+    google-protobuf (3.13.0)
+    nats-pure (0.6.2)
+    nats-streaming (0.2.2)
+      google-protobuf (~> 3)
+      nats-pure (~> 0)
     parallel (1.19.2)
     parser (2.7.1.5)
       ast (~> 2.4.1)
@@ -59,6 +71,7 @@ PLATFORMS
 DEPENDENCIES
   bps!
   bps-kafka!
+  bps-stan!
   rake
   rspec
   rubocop
