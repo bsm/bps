@@ -57,8 +57,6 @@ module BPS
         super()
 
         @topics = {}
-        @closed = false
-
         @client = ::STAN::Client.new
         @client.connect(cluster_id, client_id, **opts.slice(*CLIENT_OPTS.keys))
       end
@@ -69,10 +67,8 @@ module BPS
 
       def close
         # NATS/STAN do not survive multi-closes, so close only once:
-        return if @closed
-
-        @client.close
-        @closed = true
+        @client&.close
+        @client = nil
       end
     end
   end
