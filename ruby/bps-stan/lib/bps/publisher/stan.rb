@@ -53,12 +53,12 @@ module BPS
       # @param [String] cluster ID.
       # @param [String] client ID.
       # @param [Hash] options.
-      def initialize(cluster_id, client_id, **opts)
+      def initialize(cluster_id, client_id, nats: {}, **opts)
         super()
 
         @topics = {}
         @client = ::STAN::Client.new
-        @client.connect(cluster_id, client_id, **opts.slice(*CLIENT_OPTS.keys))
+        @client.connect(cluster_id, client_id, nats: nats, **opts.slice(*CLIENT_OPTS.keys))
       end
 
       def topic(name)
