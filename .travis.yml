@@ -42,6 +42,7 @@ matrix:
       env:
         - KAFKA_ADDRS=127.0.0.1:9092
         - NATS_SERVERS=127.0.0.1:4222
+        - SPEC_OPTS="--tag kafka --tag stan"
       services:
         - docker
       install:
@@ -61,6 +62,7 @@ matrix:
       env:
         - KAFKA_ADDRS=127.0.0.1:9092
         - NATS_SERVERS=127.0.0.1:4222
+        - SPEC_OPTS="--tag kafka --tag stan"
       services:
         - docker
       install:

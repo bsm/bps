@@ -12,20 +12,6 @@ def nats_servers_with_scheme
   nats_servers.map {|s| "nats://#{s}" }
 end
 
-run_spec = \
-  begin
-    # passing a block means that client will be automatically closed once block exits:
-    opts = {
-      servers: nats_servers_with_scheme,
-      dont_randomize_servers: true,
-    }
-    ::STAN::Client.new.connect(TEST_NATS_CLUSTER_ID, TEST_NATS_CLUSTER_ID, nats: opts) {}
-    true
-  rescue StandardError => e
-    warn "WARNING: unable to run #{File.basename __FILE__}: #{e.message}"
-    false
-  end
-
 helper = proc do
   def read_messages(topic_name, num_messages)
     [].tap do |messages|
@@ -43,7 +29,7 @@ helper = proc do
   end
 end
 
-RSpec.describe 'STAN' do
+RSpec.describe 'STAN', stan: true do
   context 'resolve addrs' do
     let(:publisher) { double('BPS::Publisher::STAN') }
     before          { allow(BPS::Publisher::STAN).to receive(:new).and_return(publisher) }
@@ -73,7 +59,7 @@ RSpec.describe 'STAN' do
     end
   end
 
-  context BPS::Publisher::STAN, if: run_spec do
+  context BPS::Publisher::STAN do
     it_behaves_like 'publisher',
                     url: "stan://#{CGI.escape(nats_servers.join(','))}/?cluster_id=#{TEST_NATS_CLUSTER_ID}&client_id=#{TEST_NATS_CLIENT_ID}",
                     &helper

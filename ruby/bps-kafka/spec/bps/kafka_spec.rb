@@ -5,15 +5,6 @@ def kafka_addrs
   ENV.fetch('KAFKA_ADDRS', '127.0.0.1:9092').split(',').freeze
 end
 
-run_spec = \
-  begin
-    ::Kafka.new(kafka_addrs).brokers
-    true
-  rescue StandardError => e
-    warn "WARNING: unable to run #{File.basename __FILE__}: #{e.message}"
-    false
-  end
-
 helper = proc do
   def read_messages(topic_name, num_messages)
     client = ::Kafka.new(kafka_addrs)
@@ -27,7 +18,7 @@ helper = proc do
   end
 end
 
-RSpec.describe 'Kafka' do
+RSpec.describe 'Kafka', kafka: true do
   context 'resolve addrs' do
     let(:client) { double('Kafka', producer: nil) }
     before       { allow(::Kafka).to receive(:new).and_return(client) }
@@ -60,11 +51,11 @@ RSpec.describe 'Kafka' do
     end
   end
 
-  context BPS::Publisher::Kafka, if: run_spec do
+  context BPS::Publisher::Kafka do
     it_behaves_like 'publisher', url: "kafka+sync://#{CGI.escape(kafka_addrs.join(','))}/", &helper
   end
 
-  context BPS::Publisher::KafkaAsync, if: run_spec do
+  context BPS::Publisher::KafkaAsync do
     it_behaves_like 'publisher', url: "kafka://#{CGI.escape(kafka_addrs.join(','))}/", &helper
   end
 end
