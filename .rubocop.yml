@@ -11,3 +11,4 @@ Metrics/MethodLength:
 Naming/FileName:
   Exclude:
     - "ruby/bps-kafka/lib/bps-kafka.rb"
+    - "ruby/bps-stan/lib/bps-stan.rb"

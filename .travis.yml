@@ -40,7 +40,8 @@ matrix:
       ruby:
         - 2.6
       env:
-        - KAFKA_ADDRS=:9092
+        - KAFKA_ADDRS=127.0.0.1:9092
+        - NATS_SERVERS=127.0.0.1:4222
       services:
         - docker
       install:
@@ -58,7 +59,8 @@ matrix:
       ruby:
         - 2.7
       env:
-        - KAFKA_ADDRS=:9092
+        - KAFKA_ADDRS=127.0.0.1:9092
+        - NATS_SERVERS=127.0.0.1:4222
       services:
         - docker
       install:
