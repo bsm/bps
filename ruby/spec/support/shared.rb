@@ -1,6 +1,6 @@
 require 'securerandom'
 
-RSpec.shared_examples 'publisher' do |features|
+RSpec.shared_examples 'publisher' do
   # WARNING: This example group requires the following helpers to be defined by caller:
   #   - `read_messages(topic_name, num_messages)`
   #   - `publisher_url`
