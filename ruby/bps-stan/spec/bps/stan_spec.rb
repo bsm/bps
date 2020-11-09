@@ -1,34 +1,6 @@
 require 'bps/stan'
 require 'spec_helper'
 
-TEST_NATS_CLUSTER_ID = 'test-cluster'.freeze
-TEST_NATS_CLIENT_ID  = 'bps-test'.freeze
-
-def nats_servers
-  ENV.fetch('NATS_SERVERS', '127.0.0.1:4222').split(',').freeze
-end
-
-def nats_servers_with_scheme
-  nats_servers.map {|s| "nats://#{s}" }
-end
-
-helper = proc do
-  def read_messages(topic_name, num_messages)
-    [].tap do |messages|
-      opts = {
-        servers: nats_servers_with_scheme,
-        dont_randomize_servers: true,
-      }
-      ::STAN::Client.new.connect(TEST_NATS_CLUSTER_ID, TEST_NATS_CLUSTER_ID, nats: opts) do |client|
-        client.subscribe(topic_name, start_at: :first) do |msg|
-          messages << msg.data
-          next if messages.size == num_messages
-        end
-      end
-    end
-  end
-end
-
 RSpec.describe 'STAN', stan: true do
   context 'resolve addrs' do
     let(:publisher) { double('BPS::Publisher::STAN') }
@@ -60,8 +32,29 @@ RSpec.describe 'STAN', stan: true do
   end
 
   context BPS::Publisher::STAN do
-    it_behaves_like 'publisher',
-                    url: "stan://#{CGI.escape(nats_servers.join(','))}/?cluster_id=#{TEST_NATS_CLUSTER_ID}&client_id=#{TEST_NATS_CLIENT_ID}",
-                    &helper
+    let(:cluster_id) { 'test-cluster' } # this is a default cluster for https://hub.docker.com/_/nats-streaming
+    let(:client_id)  { 'bps-test' }
+
+    let(:nats_servers) { ENV.fetch('NATS_SERVERS', '127.0.0.1:4222').split(',') }
+    let(:nats_servers_with_scheme) { nats_servers.map {|s| "nats://#{s}" } }
+
+    let(:publisher_url) { "stan://#{CGI.escape(nats_servers.join(','))}/?cluster_id=#{cluster_id}&client_id=#{client_id}" }
+
+    def read_messages(topic_name, num_messages)
+      [].tap do |messages|
+        opts = {
+          servers: nats_servers_with_scheme,
+          dont_randomize_servers: true,
+        }
+        ::STAN::Client.new.connect(cluster_id, client_id, nats: opts) do |client|
+          client.subscribe(topic_name, start_at: :first) do |msg|
+            messages << msg.data
+            next if messages.size == num_messages
+          end
+        end
+      end
+    end
+
+    it_behaves_like 'publisher'
   end
 end

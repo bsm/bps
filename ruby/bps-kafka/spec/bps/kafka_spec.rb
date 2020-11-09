@@ -1,23 +1,6 @@
 require 'spec_helper'
 require 'bps/kafka'
 
-def kafka_addrs
-  ENV.fetch('KAFKA_ADDRS', '127.0.0.1:9092').split(',').freeze
-end
-
-helper = proc do
-  def read_messages(topic_name, num_messages)
-    client = ::Kafka.new(kafka_addrs)
-    Enumerator.new do |y|
-      client.each_message(topic: topic_name, start_from_beginning: true) do |msg|
-        y << msg.value
-      end
-    end.take(num_messages)
-  ensure
-    client&.close
-  end
-end
-
 RSpec.describe 'Kafka', kafka: true do
   context 'resolve addrs' do
     let(:client) { double('Kafka', producer: nil) }
@@ -51,11 +34,30 @@ RSpec.describe 'Kafka', kafka: true do
     end
   end
 
-  context BPS::Publisher::Kafka do
-    it_behaves_like 'publisher', url: "kafka+sync://#{CGI.escape(kafka_addrs.join(','))}/", &helper
-  end
+  describe 'publishers' do
+    let(:kafka_addrs) { ENV.fetch('KAFKA_ADDRS', '127.0.0.1:9092').split(',') }
 
-  context BPS::Publisher::KafkaAsync do
-    it_behaves_like 'publisher', url: "kafka://#{CGI.escape(kafka_addrs.join(','))}/", &helper
+    def read_messages(topic_name, num_messages)
+      client = ::Kafka.new(kafka_addrs)
+      Enumerator.new do |y|
+        client.each_message(topic: topic_name, start_from_beginning: true) do |msg|
+          y << msg.value
+        end
+      end.take(num_messages)
+    ensure
+      client&.close
+    end
+
+    context BPS::Publisher::Kafka do
+      let(:publisher_url) { "kafka+sync://#{CGI.escape(kafka_addrs.join(','))}/" }
+
+      it_behaves_like 'publisher'
+    end
+
+    context BPS::Publisher::KafkaAsync do
+      let(:publisher_url) { "kafka://#{CGI.escape(kafka_addrs.join(','))}/" }
+
+      it_behaves_like 'publisher'
+    end
   end
 end
