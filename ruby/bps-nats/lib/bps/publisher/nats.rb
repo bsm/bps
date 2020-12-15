@@ -1,9 +1,9 @@
 require 'cgi'
-require 'stan/client'
+require 'nats/io/client'
 
 module BPS
   module Publisher
-    class STAN < Abstract
+    class NATS < Abstract
       class Topic < Abstract::Topic
         def initialize(client, topic)
           super()
@@ -22,14 +22,12 @@ module BPS
       end
 
       CLIENT_OPTS = {
-        nats: {
-          servers: [:string],
-          dont_randomize_servers: :bool,
-          reconnect_time_wait: :float,
-          max_reconnect_attempts: :int,
-          connect_timeout: :float,
-          # TODO: review, list all of them: https://github.com/nats-io/nats.rb (there's tls config etc)
-        },
+        servers: [:string],
+        dont_randomize_servers: :bool,
+        reconnect_time_wait: :float,
+        max_reconnect_attempts: :int,
+        connect_timeout: :float,
+        # TODO: review, list all of them: https://github.com/nats-io/nats-pure.rb (there's tls config etc)
       }.freeze
 
       def self.parse_url(url)
@@ -40,9 +38,7 @@ module BPS
           addr
         end
         opts = CGI.parse(url.query || '').transform_values {|v| v.size == 1 ? v[0] : v }
-        cluster_id = opts.delete('cluster_id')
-        client_id = opts.delete('client_id')
-        [cluster_id, client_id, { nats: { servers: servers } }]
+        opts.merge(servers: servers)
       end
 
       # @return [BPS::Coercer] the options coercer.
@@ -50,15 +46,13 @@ module BPS
         @coercer ||= BPS::Coercer.new(CLIENT_OPTS).freeze
       end
 
-      # @param [String] cluster ID.
-      # @param [String] client ID.
       # @param [Hash] options.
-      def initialize(cluster_id, client_id, nats: {}, **opts)
+      def initialize(**opts)
         super()
 
         @topics = {}
-        @client = ::STAN::Client.new
-        @client.connect(cluster_id, client_id, nats: nats, **opts.slice(*CLIENT_OPTS.keys))
+        @client = ::NATS::IO::Client.new
+        @client.connect(**opts.slice(*CLIENT_OPTS.keys))
       end
 
       def topic(name)
@@ -66,9 +60,7 @@ module BPS
       end
 
       def close
-        # NATS/STAN do not survive multi-closes, so close only once:
-        @client&.close
-        @client = nil
+        @client.close
       end
     end
   end

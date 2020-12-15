@@ -20,8 +20,11 @@ services:
       KAFKA_NUM_PARTITIONS: "4"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+  nats:
+    image: nats:2
+    ports:
+      - "4222:4222"
   nats_streaming:
     image: nats-streaming:0.19.0 # not a v1, so pin it
     ports:
-      - "4222:4222"
-      - "8222:8222"
+      - "4223:4222"
