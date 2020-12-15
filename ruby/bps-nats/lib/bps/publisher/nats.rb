@@ -29,7 +29,8 @@ module BPS
         reconnect_time_wait: :float,
         max_reconnect_attempts: :int,
         connect_timeout: :float,
-        # TODO: review, list all of them: https://github.com/nats-io/nats-pure.rb (there's tls config etc)
+        tls_ca_file: :strig,
+        # TODO: review, list all of them: https://github.com/nats-io/nats-pure.rb
       }.freeze
 
       def self.parse_url(url)
@@ -51,6 +52,14 @@ module BPS
       # @param [Hash] options.
       def initialize(**opts)
         super()
+
+        # handle TLS if CA file is provided:
+        if !opts[:tls] && opts[:tls_ca_file]
+          ctx = OpenSSL::SSL::SSLContext.new
+          ctx.set_params
+          ctx.ca_file = opts.delete(:tls_ca_file)
+          opts[:tls] = ctx
+        end
 
         @topics = {}
         @client = ::NATS::IO::Client.new
