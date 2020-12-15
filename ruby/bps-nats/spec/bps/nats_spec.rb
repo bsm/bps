@@ -37,21 +37,36 @@ RSpec.describe 'NATS', nats: true do
 
     let(:publisher_url) { "nats://#{CGI.escape(nats_servers.join(','))}" }
 
-    def read_messages(topic_name, num_messages)
+    # Pure NATS doesn't retain messages, so we need to subscribe BEFORE emitting.
+    # Also, subscription is asynchronous, so we have to use blocking queue to wait for messages.
+
+    # connect to NATS before any test code runs:
+    let!(:nats_client) do
       opts = {
         servers: nats_servers_with_scheme,
         dont_randomize_servers: true,
       }
       client = ::NATS::IO::Client.new
       client.connect(opts)
+      client
+    end
 
-      # subscriptions are asynchronous, so using blocking queue to wait for messages:
-      messages = Queue.new
-      client.subscribe(topic_name, max: num_messages) { |msg| messages << msg }
-      num_messages.times.map{ messages.pop }
-    ensure
-      client&.close
-      messages&.close
+    # don't forget to close NATS connection after tests are done:
+    after do
+      nats_client.close
+    end
+
+    # blocking queue to gather messages in background thread:
+    let(:messages_queue) { Queue.new }
+
+    # subscribe to test topic, non-blocking; messages will be pushed into blocking queue:
+    def prepare_topic(topic_name, num_messages)
+      nats_client.subscribe(topic_name, max: num_messages) {|msg| messages_queue << msg }
+    end
+
+    # simply drain messages queue to get messages:
+    def read_messages(_topic_name, num_messages)
+      num_messages.times.map { messages_queue.pop }
     end
 
     it_behaves_like 'publisher'

@@ -18,13 +18,18 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       KAFKA_CREATE_TOPICS: "topic-a:3:1,topic-b:3:1"
       KAFKA_NUM_PARTITIONS: "4"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+    # volumes:
+    #   - /var/run/docker.sock:/var/run/docker.sock
   nats:
     image: nats:2
     ports:
       - "4222:4222"
   nats_streaming:
     image: nats-streaming:0.19.0 # not a v1, so pin it
+    command:
+      - -p
+      - 4223
+      - -m
+      - 8223
     ports:
-      - "4223:4222"
+      - "4223:4223"
