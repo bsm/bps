@@ -26,10 +26,6 @@ services:
       - "4222:4222"
   nats_streaming:
     image: nats-streaming:0.19.0 # not a v1, so pin it
-    command:
-      - -p
-      - 4223
-      - -m
-      - 8223
+    command: ["-p", "4223", "-m", "8223"]
     ports:
       - "4223:4223"
