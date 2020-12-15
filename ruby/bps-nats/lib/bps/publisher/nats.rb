@@ -4,6 +4,8 @@ require 'nats/io/client'
 module BPS
   module Publisher
     class NATS < Abstract
+      FLUSH_TIMEOUT = 5.freeze
+
       class Topic < Abstract::Topic
         def initialize(client, topic)
           super()
@@ -17,7 +19,7 @@ module BPS
         end
 
         def flush(**)
-          # noop
+          @client.flush(FLUSH_TIMEOUT)
         end
       end
 

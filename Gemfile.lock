@@ -10,7 +10,7 @@ PATH
   specs:
     bps-nats (0.1.4)
       bps (= 0.1.4)
-      nats-pure (= 0.6.2)
+      nats-pure (~> 0.6.2)
 
 PATH
   remote: ruby/bps-stan
@@ -31,7 +31,7 @@ GEM
     diff-lcs (1.4.4)
     digest-crc (0.6.1)
       rake (~> 13.0)
-    google-protobuf (3.14.0-x86_64-linux)
+    google-protobuf (3.14.0)
     nats-pure (0.6.2)
     nats-streaming (0.2.2)
       google-protobuf (~> 3)
