@@ -29,7 +29,7 @@ module BPS
         reconnect_time_wait: :float,
         max_reconnect_attempts: :int,
         connect_timeout: :float,
-        tls_ca_file: :strig,
+        tls_ca_file: :string,
         # TODO: review, list all of them: https://github.com/nats-io/nats-pure.rb
       }.freeze
 

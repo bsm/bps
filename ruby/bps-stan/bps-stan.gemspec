@@ -18,5 +18,5 @@ Gem::Specification.new do |s|
   s.required_ruby_version = '>= 2.6.0'
 
   s.add_dependency 'bps', s.version
-  s.add_dependency 'nats-streaming', '= 0.2.2'
+  s.add_dependency 'nats-streaming', '~> 0.2.2'
 end
