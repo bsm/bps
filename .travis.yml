@@ -5,6 +5,7 @@ matrix:
         - 1.14.x
       env:
         - BPS_TEST=kafka,nats
+        - NATS_ADDR=localhost:4223
       services:
         - docker
       install:
@@ -23,6 +24,7 @@ matrix:
         - 1.15.x
       env:
         - BPS_TEST=kafka,nats
+        - NATS_ADDR=localhost:4223
       services:
         - docker
       install:
