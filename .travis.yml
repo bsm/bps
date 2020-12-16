@@ -34,6 +34,7 @@ matrix:
       before_script:
         - docker-compose -f testdata/docker-compose.yml up -d
       script:
+        - sleep 3 # dirty hack, looks like NATS/STAN takes some time to init, so nats test fails with connect timeout
         - make test-verbose staticcheck
       cache:
         directories:
