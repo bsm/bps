@@ -15,18 +15,13 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-const (
-	// clusterID holds (default) nats-streaming cluster ID: https://hub.docker.com/_/nats-streaming
-	clusterID = "test-cluster"
-)
-
 var _ = Describe("Publisher", func() {
 	var subject bps.Publisher
 	var ctx = context.Background()
 
 	BeforeEach(func() {
 		var err error
-		subject, err = bps.NewPublisher(ctx, fmt.Sprintf("%s?client_id=%s", "nats://"+natsAddr+"/"+clusterID, bps.GenClientID()))
+		subject, err = bps.NewPublisher(ctx, fmt.Sprintf("nats://%s/%s?client_id=%s", natsAddr, clusterID, bps.GenClientID()))
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -58,7 +53,7 @@ var _ = Describe("Subscriber", func() {
 
 	BeforeEach(func() {
 		var err error
-		subject, err = bps.NewSubscriber(ctx, fmt.Sprintf("%s?client_id=%s", "nats://"+natsAddr+"/"+clusterID, bps.GenClientID()))
+		subject, err = bps.NewSubscriber(ctx, fmt.Sprintf("nats://%s/%s?client_id=%s", natsAddr, clusterID, bps.GenClientID()))
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -99,7 +94,7 @@ func TestSuite(t *testing.T) {
 }
 
 func readMessages(topic string, count int) ([]*bps.PubMessage, error) {
-	conn, err := stan.Connect(clusterID, bps.GenClientID())
+	conn, err := stan.Connect(clusterID, bps.GenClientID(), stan.NatsURL("nats://"+natsAddr))
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +130,7 @@ func readMessages(topic string, count int) ([]*bps.PubMessage, error) {
 }
 
 func seedMessages(topic string, messages []bps.SubMessage) error {
-	conn, err := stan.Connect(clusterID, bps.GenClientID())
+	conn, err := stan.Connect(clusterID, bps.GenClientID(), stan.NatsURL("nats://"+natsAddr))
 	if err != nil {
 		return err
 	}

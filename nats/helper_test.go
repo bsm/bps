@@ -2,6 +2,8 @@ package nats_test
 
 import "os"
 
+const clusterID = "test-cluster" // clusterID holds (default) nats-streaming cluster ID: https://hub.docker.com/_/nats-streaming
+
 var natsAddr string
 
 func init() {
