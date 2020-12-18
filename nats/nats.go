@@ -8,6 +8,8 @@
 //
 //   client_id
 //     nats-streaming client ID, [0-9A-Za-z_-] only.
+//   client_cert, client_key
+//     nats client certificate and key file paths.
 //
 package nats
 
@@ -175,6 +177,9 @@ func (t *subTopic) Subscribe(handler bps.Handler, options ...bps.SubOption) (bps
 
 // ----------------------------------------------------------------------------
 
+// prepareConnectionArgs parses args for NewSubscriber/NewPublisher from URL.
+//
+// TODO: maybe better re-do NewSubscriber/NewPublisher on their own to do this?
 func prepareConnectionArgs(u *url.URL) (
 	natsConn *natsio.Conn,
 	clusterID string,
