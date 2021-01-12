@@ -1,4 +1,4 @@
-package nats_test
+package stan_test
 
 import (
 	"context"
@@ -6,12 +6,12 @@ import (
 	"time"
 
 	"github.com/bsm/bps"
-	_ "github.com/bsm/bps/nats"
+	_ "github.com/bsm/bps/stan"
 )
 
 func ExamplePublisher() {
 	ctx := context.TODO()
-	pub, err := bps.NewPublisher(ctx, "nats://"+natsAddr+"/"+clusterID+"?client_id=my_client")
+	pub, err := bps.NewPublisher(ctx, "stan://"+natsAddr+"/"+clusterID+"?client_id=my_client")
 	if err != nil {
 		panic(err.Error())
 	}
@@ -21,7 +21,7 @@ func ExamplePublisher() {
 }
 
 func ExampleSubscriber() {
-	subscriber, err := bps.NewSubscriber(context.TODO(), "nats://"+natsAddr+"/"+clusterID+"?client_id=my_client&start_at=first")
+	subscriber, err := bps.NewSubscriber(context.TODO(), "stan://"+natsAddr+"/"+clusterID+"?client_id=my_client&start_at=first")
 	if err != nil {
 		panic(err.Error())
 	}

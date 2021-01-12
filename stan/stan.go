@@ -1,4 +1,4 @@
-// Package nats abstracts publish-subscribe https://docs.nats.io/developing-with-nats-streaming/streaming backend.
+// Package stan abstracts publish-subscribe https://docs.nats.io/developing-with-nats-streaming/streaming backend.
 //
 // WARNING/TODO: messages can be considered not acknowledged,
 //               because DurableName for subscriptions is not used yet:
@@ -11,7 +11,7 @@
 //   client_cert, client_key
 //     nats client certificate and key file paths.
 //
-package nats
+package stan
 
 import (
 	"context"
@@ -27,14 +27,14 @@ import (
 )
 
 func init() {
-	bps.RegisterPublisher("nats", func(ctx context.Context, u *url.URL) (bps.Publisher, error) {
+	bps.RegisterPublisher("stan", func(ctx context.Context, u *url.URL) (bps.Publisher, error) {
 		natsConn, clusterID, clientID, opts, err := prepareConnectionArgs(u)
 		if err != nil {
 			return nil, err
 		}
 		return newPublisherWithNatsConn(natsConn, clusterID, clientID, opts)
 	})
-	bps.RegisterSubscriber("nats", func(ctx context.Context, u *url.URL) (bps.Subscriber, error) {
+	bps.RegisterSubscriber("stan", func(ctx context.Context, u *url.URL) (bps.Subscriber, error) {
 		natsConn, clusterID, clientID, opts, err := prepareConnectionArgs(u)
 		if err != nil {
 			return nil, err
@@ -48,7 +48,7 @@ type publisher struct {
 	natsConn *natsio.Conn // managed NATS connection, if any
 }
 
-// NewPublisher constructs a new nats.io-backed publisher.
+// NewPublisher constructs a new STAN-backed publisher.
 func NewPublisher(stanClusterID, clientID string, opts []stan.Option) (bps.Publisher, error) {
 	return newPublisherWithNatsConn(nil, stanClusterID, clientID, opts)
 }
@@ -104,7 +104,7 @@ type subscriber struct {
 	natsConn *natsio.Conn // managed NATS connection, if any
 }
 
-// NewSubscriber constructs a new nats.io-backed publisher.
+// NewSubscriber constructs a new STAN-backed publisher.
 // By default, it starts handling from the newest available message (published after subscribing).
 func NewSubscriber(stanClusterID, clientID string, opts []stan.Option) (bps.Subscriber, error) {
 	return newSubscriberWithNatsConn(nil, stanClusterID, clientID, opts)

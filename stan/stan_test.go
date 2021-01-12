@@ -1,4 +1,4 @@
-package nats_test
+package stan_test
 
 import (
 	"context"
@@ -21,7 +21,7 @@ var _ = Describe("Publisher", func() {
 
 	BeforeEach(func() {
 		var err error
-		subject, err = bps.NewPublisher(ctx, fmt.Sprintf("nats://%s/%s?client_id=%s", natsAddr, clusterID, bps.GenClientID()))
+		subject, err = bps.NewPublisher(ctx, fmt.Sprintf("stan://%s/%s?client_id=%s", natsAddr, clusterID, bps.GenClientID()))
 		Expect(err).NotTo(HaveOccurred())
 	})
 

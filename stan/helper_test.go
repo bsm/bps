@@ -1,4 +1,4 @@
-package nats_test
+package stan_test
 
 import "os"
 
