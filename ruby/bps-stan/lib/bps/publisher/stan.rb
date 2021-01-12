@@ -28,6 +28,7 @@ module BPS
           reconnect_time_wait: :float,
           max_reconnect_attempts: :int,
           connect_timeout: :float,
+          tls_ca_file: :string,
           # TODO: review, list all of them: https://github.com/nats-io/nats.rb (there's tls config etc)
         },
       }.freeze
@@ -55,6 +56,14 @@ module BPS
       # @param [Hash] options.
       def initialize(cluster_id, client_id, nats: {}, **opts)
         super()
+
+        # handle TLS if CA file is provided:
+        if !nats[:tls] && nats[:tls_ca_file]
+          ctx = OpenSSL::SSL::SSLContext.new
+          ctx.set_params
+          ctx.ca_file = nats.delete(:tls_ca_file)
+          nats[:tls] = ctx
+        end
 
         @topics = {}
         @client = ::STAN::Client.new

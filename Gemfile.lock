@@ -17,7 +17,7 @@ PATH
   specs:
     bps-stan (0.1.4)
       bps (= 0.1.4)
-      nats-streaming (= 0.2.2)
+      nats-streaming (~> 0.2.2)
 
 PATH
   remote: ruby/bps
