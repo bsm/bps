@@ -70,7 +70,7 @@ var _ = Describe("Subscriber", func() {
 
 		BeforeEach(func() {
 			shared = lint.SubscriberInput{
-				Subject: func(topic string) bps.Subscriber {
+				Subject: func(topic string, messages []bps.SubMessage) bps.Subscriber {
 					return subject
 				},
 				Seed: func(topic string, messages []bps.SubMessage) {

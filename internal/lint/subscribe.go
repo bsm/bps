@@ -13,11 +13,11 @@ import (
 // SubscriberInput for the shared test.
 type SubscriberInput struct {
 	// Subject should be set to a subject to be tested.
-	// It can optionally prepare (pre-create) topic (the same topic will be used for Seed-ing).
+	// It can optionally prepare (pre-create) or seed the topic at this point (the same topic will be used for Seed-ing later).
 	// Caller should handle all the subject teardown/cleanup.
-	Subject func(topic string) bps.Subscriber
+	Subject func(topic string, messages []bps.SubMessage) bps.Subscriber
 
-	// Seed should seed given topic/messages for Subject.
+	// Seed can seed given topic/messages for Subject unless already seeded.
 	// Topics are guaranteed to be prefixed with "bps-unittest-".
 	Seed func(topic string, messages []bps.SubMessage)
 }
@@ -27,12 +27,17 @@ func Subscriber(input *SubscriberInput) {
 	var subject bps.Subscriber
 	var handler *mockHandler
 	var topic string
+	var messages []bps.SubMessage
 
 	ginkgo.BeforeEach(func() {
 		cycle := time.Now().UnixNano()
 		topic = fmt.Sprintf("bps-unittest-topic-%d-a", cycle)
+		messages = []bps.SubMessage{
+			bps.RawSubMessage("message-1"),
+			bps.RawSubMessage("message-2"),
+		}
 
-		subject = input.Subject(topic)
+		subject = input.Subject(topic, messages)
 		handler = &mockHandler{}
 	})
 
@@ -44,10 +49,9 @@ func Subscriber(input *SubscriberInput) {
 			// give subscriber some time to actually start consuming:
 			time.Sleep(subscriptionWaitDelay)
 
-			input.Seed(topic, []bps.SubMessage{
-				bps.RawSubMessage("message-1"),
-				bps.RawSubMessage("message-2"),
-			})
+			if input.Seed != nil {
+				input.Seed(topic, messages)
+			}
 		}()
 
 		sub, err := subject.Topic(topic).Subscribe(handler)
