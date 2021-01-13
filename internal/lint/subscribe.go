@@ -12,10 +12,14 @@ import (
 
 // SubscriberInput for the shared test.
 type SubscriberInput struct {
-	// Subject should return a subject to be tested, with given topic/messages seeded.
+	// Subject should be set to a subject to be tested.
+	// It can optionally prepare (pre-create) topic (the same topic will be used for Seed-ing).
 	// Caller should handle all the subject teardown/cleanup.
+	Subject func(topic string) bps.Subscriber
+
+	// Seed should seed given topic/messages for Subject.
 	// Topics are guaranteed to be prefixed with "bps-unittest-".
-	Subject func(topic string, messages []bps.SubMessage) bps.Subscriber
+	Seed func(topic string, messages []bps.SubMessage)
 }
 
 // Subscriber lints subscribers.
@@ -28,19 +32,29 @@ func Subscriber(input *SubscriberInput) {
 		cycle := time.Now().UnixNano()
 		topic = fmt.Sprintf("bps-unittest-topic-%d-a", cycle)
 
-		subject = input.Subject(topic, []bps.SubMessage{
-			bps.RawSubMessage("message-1"),
-			bps.RawSubMessage("message-2"),
-		})
+		subject = input.Subject(topic)
 		handler = &mockHandler{}
 	})
 
 	ginkgo.It("should subscribe", func() {
-		sub, err := subject.Topic(topic).Subscribe(handler, bps.StartAt(bps.PositionOldest))
-		Ω.Expect(err).NotTo(Ω.HaveOccurred())
-		defer sub.Close() // multiple calls are safe
+		// produce concurrently:
+		go func() {
+			defer ginkgo.GinkgoRecover()
 
-		Ω.Eventually(handler.Len).Should(Ω.Equal(2))
+			// give subscriber some time to actually start consuming:
+			time.Sleep(subscriptionWaitDelay)
+
+			input.Seed(topic, []bps.SubMessage{
+				bps.RawSubMessage("message-1"),
+				bps.RawSubMessage("message-2"),
+			})
+		}()
+
+		sub, err := subject.Topic(topic).Subscribe(handler)
+		Ω.Expect(err).NotTo(Ω.HaveOccurred())
+		defer sub.Close() // multiple calls must be safe
+
+		Ω.Eventually(handler.Len, 3*subscriptionWaitDelay).Should(Ω.Equal(2))
 		Ω.Expect(handler.Data()).To(Ω.ConsistOf("message-1", "message-2"))
 
 		Ω.Expect(sub.Close()).To(Ω.Succeed())
