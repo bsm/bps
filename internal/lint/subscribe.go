@@ -58,7 +58,7 @@ func Subscriber(input *SubscriberInput) {
 		Ω.Expect(err).NotTo(Ω.HaveOccurred())
 		defer sub.Close() // multiple calls must be safe
 
-		Ω.Eventually(handler.Len, 3*subscriptionWaitDelay).Should(Ω.Equal(2))
+		Ω.Eventually(handler.Len, 5*subscriptionWaitDelay).Should(Ω.Equal(2))
 		Ω.Expect(handler.Data()).To(Ω.ConsistOf("message-1", "message-2"))
 
 		Ω.Expect(sub.Close()).To(Ω.Succeed())
