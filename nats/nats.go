@@ -1,13 +1,7 @@
-// Package nats abstracts publish-subscribe https://docs.nats.io/developing-with-nats-streaming/streaming backend.
-//
-// WARNING/TODO: messages can be considered not acknowledged,
-//               because DurableName for subscriptions is not used yet:
-//               https://godoc.org/github.com/nats-io/stan.go#DurableName
+// Package nats implements nats.io backend adapter.
 //
 // Both bps.NewPublisher and bps.NewSubscriber support:
 //
-//   client_id
-//     nats-streaming client ID, [0-9A-Za-z_-] only.
 //   client_cert, client_key
 //     nats client certificate and key file paths.
 //
@@ -18,50 +12,43 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"strings"
 
 	"github.com/bsm/bps"
-	natsio "github.com/nats-io/nats.go"
-	"github.com/nats-io/stan.go"
-	"github.com/nats-io/stan.go/pb"
+	"github.com/nats-io/nats.go"
 )
 
 func init() {
 	bps.RegisterPublisher("nats", func(ctx context.Context, u *url.URL) (bps.Publisher, error) {
-		natsConn, clusterID, clientID, opts, err := prepareConnectionArgs(u)
+		natsURL, opts, err := prepareConnectionArgs(u)
 		if err != nil {
 			return nil, err
 		}
-		return newPublisherWithNatsConn(natsConn, clusterID, clientID, opts)
+		return NewPublisher(natsURL, opts...)
 	})
 	bps.RegisterSubscriber("nats", func(ctx context.Context, u *url.URL) (bps.Subscriber, error) {
-		natsConn, clusterID, clientID, opts, err := prepareConnectionArgs(u)
+		natsURL, opts, err := prepareConnectionArgs(u)
 		if err != nil {
 			return nil, err
 		}
-		return newSubscriberWithNatsConn(natsConn, clusterID, clientID, opts)
+		return NewSubscriber(natsURL, opts...)
 	})
 }
 
+// ----------------------------------------------------------------------------
+
 type publisher struct {
-	conn     stan.Conn
-	natsConn *natsio.Conn // managed NATS connection, if any
+	conn *nats.Conn
 }
 
-// NewPublisher constructs a new nats.io-backed publisher.
-func NewPublisher(stanClusterID, clientID string, opts []stan.Option) (bps.Publisher, error) {
-	return newPublisherWithNatsConn(nil, stanClusterID, clientID, opts)
-}
-
-func newPublisherWithNatsConn(natsConn *natsio.Conn, stanClusterID, clientID string, opts []stan.Option) (bps.Publisher, error) {
-	c, err := stan.Connect(stanClusterID, clientID, opts...)
+// NewPublisher inits nats.io-backed publisher.
+func NewPublisher(natsURL string, opts ...nats.Option) (bps.Publisher, error) {
+	conn, err := nats.Connect(natsURL, opts...)
 	if err != nil {
 		return nil, err
 	}
 
 	return &publisher{
-		conn:     c,
-		natsConn: natsConn,
+		conn: conn,
 	}, nil
 }
 
@@ -73,152 +60,121 @@ func (p *publisher) Topic(name string) bps.PubTopic {
 }
 
 func (p *publisher) Close() error {
-	err := p.conn.Close()
-
-	// close managed nats connection, if any:
-	if nc := p.natsConn; nc != nil {
-		nc.Close()
+	if err := p.conn.Flush(); err != nil {
+		return err
 	}
 
-	return err
+	p.conn.Close()
+	return nil
 }
 
 // ----------------------------------------------------------------------------
 
 type pubTopic struct {
-	conn stan.Conn
+	conn *nats.Conn
 	name string
 }
 
 func (t *pubTopic) Publish(ctx context.Context, msg *bps.PubMessage) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
 	return t.conn.Publish(t.name, msg.Data)
 }
 
 // ----------------------------------------------------------------------------
 
 type subscriber struct {
-	conn     stan.Conn
-	natsConn *natsio.Conn // managed NATS connection, if any
+	conn *nats.Conn
 }
 
-// NewSubscriber constructs a new nats.io-backed publisher.
-// By default, it starts handling from the newest available message (published after subscribing).
-func NewSubscriber(stanClusterID, clientID string, opts []stan.Option) (bps.Subscriber, error) {
-	return newSubscriberWithNatsConn(nil, stanClusterID, clientID, opts)
-}
-
-func newSubscriberWithNatsConn(natsConn *natsio.Conn, stanClusterID, clientID string, opts []stan.Option) (bps.Subscriber, error) {
-	c, err := stan.Connect(stanClusterID, clientID, opts...)
+// NewSubscriber inits nats.io-backed subscriber.
+func NewSubscriber(natsURL string, opts ...nats.Option) (bps.Subscriber, error) {
+	conn, err := nats.Connect(natsURL, opts...)
 	if err != nil {
 		return nil, err
 	}
 
 	return &subscriber{
-		conn:     c,
-		natsConn: natsConn,
+		conn: conn,
 	}, nil
 }
 
 func (s *subscriber) Topic(name string) bps.SubTopic {
 	return &subTopic{
-		stan: s.conn,
+		conn: s.conn,
 		name: name,
 	}
 }
 
 func (s *subscriber) Close() error {
-	err := s.conn.Close()
-
-	// close managed nats connection, if any:
-	if nc := s.natsConn; nc != nil {
-		nc.Close()
-	}
-
-	return err
+	s.conn.Close()
+	return nil
 }
 
 // ----------------------------------------------------------------------------
 
 type subTopic struct {
-	stan stan.Conn
+	conn *nats.Conn
 	name string
 }
 
 func (t *subTopic) Subscribe(handler bps.Handler, options ...bps.SubOption) (bps.Subscription, error) {
+	// options are handled only for checking - return error if user expects smth that is not supported by nats:
 	opts := (&bps.SubOptions{
 		StartAt: bps.PositionNewest,
 	}).Apply(options)
-
-	var startPos pb.StartPosition
-	switch opts.StartAt {
-	case bps.PositionNewest:
-		startPos = pb.StartPosition_NewOnly
-	case bps.PositionOldest:
-		startPos = pb.StartPosition_First
-	default:
-		return nil, fmt.Errorf("start position %s is not supported by this implementation", opts.StartAt)
+	if opts.StartAt != bps.PositionNewest {
+		return nil, fmt.Errorf("start position %s is not supported by this implementation (PositionNewest is the only option)", opts.StartAt)
 	}
+	// error handler is silently ignored, as it is supported conn-wide, not per-subscription.
 
-	sub, err := t.stan.Subscribe(
+	sub, err := t.conn.Subscribe(
 		t.name,
-		func(msg *stan.Msg) {
+		func(msg *nats.Msg) {
 			handler.Handle(bps.RawSubMessage(msg.Data))
 		},
-		stan.StartAt(startPos),
 	)
 	if err != nil {
 		return nil, err
 	}
-	return sub, nil
+	return &subscription{
+		sub: sub,
+	}, nil
+}
+
+// ----------------------------------------------------------------------------
+
+type subscription struct {
+	sub *nats.Subscription
+}
+
+func (s *subscription) Close() error {
+	return s.sub.Unsubscribe()
 }
 
 // ----------------------------------------------------------------------------
 
 // prepareConnectionArgs parses args for NewSubscriber/NewPublisher from URL.
-//
-// TODO: maybe better re-do NewSubscriber/NewPublisher on their own to do this?
 func prepareConnectionArgs(u *url.URL) (
-	natsConn *natsio.Conn,
-	clusterID string,
-	clientID string,
-	opts []stan.Option,
+	natsURL string,
+	opts []nats.Option,
 	err error,
 ) {
 	q := u.Query()
 
-	// common details/options:
-	clusterID = strings.Trim(u.Path, "/")
-	if clientID = q.Get("client_id"); clientID == "" {
-		clientID = bps.GenClientID()
-	}
-
-	// managed NATS connection, for TLS etc:
-
-	natsURL := &url.URL{
+	// converted/cleaned up version of a BPS URL:
+	natsURL = (&url.URL{
 		Scheme: "nats",
 		Host:   u.Host, // host or host:port
-	}
+	}).String()
 
-	var natsOpts []natsio.Option
 	if clientCert, clientKey := q.Get("client_cert"), q.Get("client_key"); clientCert != "" || clientKey != "" {
 		if clientCert == "" {
-			return nil, "", "", nil, errors.New("no client_cert provided")
+			return "", nil, errors.New("no client_cert provided")
 		}
 		if clientKey == "" {
-			return nil, "", "", nil, errors.New("no client_key provided")
+			return "", nil, errors.New("no client_key provided")
 		}
-		natsOpts = append(natsOpts, natsio.ClientCert(clientCert, clientKey))
+		opts = append(opts, nats.ClientCert(clientCert, clientKey))
 	}
 
-	natsConn, err = natsio.Connect(natsURL.String(), natsOpts...)
-	if err != nil {
-		return nil, "", "", nil, err
-	}
-
-	opts = append(opts, stan.NatsConn(natsConn))
-
-	return
+	return natsURL, opts, nil
 }

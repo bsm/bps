@@ -85,8 +85,10 @@ var _ = Describe("Subscriber", func() {
 		BeforeEach(func() {
 			shared = lint.SubscriberInput{
 				Subject: func(topic string, messages []bps.SubMessage) bps.Subscriber {
-					Expect(seedMessages(topic, messages)).To(Succeed())
 					return subject
+				},
+				Seed: func(topic string, messages []bps.SubMessage) {
+					Expect(seedMessages(topic, messages)).To(Succeed())
 				},
 			}
 		})

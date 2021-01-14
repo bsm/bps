@@ -2,28 +2,29 @@ require 'bps/nats'
 require 'spec_helper'
 
 RSpec.describe 'NATS', nats: true do
-  context 'resolve addrs' do
-    let(:publisher) { double('BPS::Publisher::NATS') }
+  context 'with addr resolving' do
+    let(:publisher) { instance_double('BPS::Publisher::NATS') }
+
     before          { allow(BPS::Publisher::NATS).to receive(:new).and_return(publisher) }
 
-    it 'should resolve simple URLs' do
-      expect(BPS::Publisher::NATS)
+    it 'resolves simple URLs' do
+      allow(BPS::Publisher::NATS)
         .to receive(:new)
         .with(servers: ['nats://test.host:4222'])
         .and_return(publisher)
       BPS::Publisher.resolve(URI.parse('nats://test.host:4222'))
     end
 
-    it 'should resolve URLs with multiple hosts' do
-      expect(BPS::Publisher::NATS)
+    it 'resolves URLs with multiple hosts' do
+      allow(BPS::Publisher::NATS)
         .to receive(:new)
         .with(servers: ['nats://foo.host:4222', 'nats://bar.host:4222'])
         .and_return(publisher)
       BPS::Publisher.resolve(URI.parse('nats://foo.host,bar.host:4222'))
     end
 
-    it 'should resolve URLs with multiple hosts/ports' do
-      expect(BPS::Publisher::NATS)
+    it 'resolves URLs with multiple hosts/ports' do
+      allow(BPS::Publisher::NATS)
         .to receive(:new)
         .with(servers: ['nats://foo.host:4223', 'nats://bar.host:4222'])
         .and_return(publisher)
@@ -33,6 +34,7 @@ RSpec.describe 'NATS', nats: true do
 
   context BPS::Publisher::NATS do
     let(:nats_servers) { ENV.fetch('NATS_SERVERS', '127.0.0.1:4222').split(',') }
+    let(:messages_queue) { Queue.new }
     let(:nats_servers_with_scheme) { nats_servers.map {|s| "nats://#{s}" } }
 
     let(:publisher_url) { "nats://#{CGI.escape(nats_servers.join(','))}" }
@@ -57,7 +59,6 @@ RSpec.describe 'NATS', nats: true do
     end
 
     # blocking queue to gather messages in background thread:
-    let(:messages_queue) { Queue.new }
 
     # subscribe to test topic, non-blocking; messages will be pushed into blocking queue:
     def prepare_topic(topic_name, num_messages)
@@ -66,7 +67,7 @@ RSpec.describe 'NATS', nats: true do
 
     # simply drain messages queue to get messages:
     def read_messages(_topic_name, num_messages)
-      num_messages.times.map { messages_queue.pop }
+      Array.new(num_messages) { messages_queue.pop }
     end
 
     it_behaves_like 'publisher'
