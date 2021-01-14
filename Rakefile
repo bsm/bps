@@ -7,8 +7,7 @@ RSpec::Core::RakeTask.new(:spec) do |t|
   t.pattern = 'ruby/*/spec/**{,/*/**}/*_spec.rb'
 end
 
-RuboCop::RakeTask.new(:rubocop) do |t|
-end
+RuboCop::RakeTask.new(:rubocop)
 
 PACKAGES = Dir['ruby/*/*.gemspec'].map {|fn| File.dirname(fn) }.freeze
 

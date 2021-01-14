@@ -1,4 +1,4 @@
-package stan_test
+package nats_test
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 
 	"github.com/bsm/bps"
 	"github.com/bsm/bps/internal/lint"
-	"github.com/nats-io/stan.go"
+	"github.com/nats-io/nats.go"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -21,7 +21,7 @@ var _ = Describe("Publisher", func() {
 
 	BeforeEach(func() {
 		var err error
-		subject, err = bps.NewPublisher(ctx, fmt.Sprintf("stan://%s/%s?client_id=%s", stanAddr, clusterID, bps.GenClientID()))
+		subject, err = bps.NewPublisher(ctx, fmt.Sprintf("nats://%s", natsAddr))
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -53,7 +53,7 @@ var _ = Describe("Subscriber", func() {
 
 	BeforeEach(func() {
 		var err error
-		subject, err = bps.NewSubscriber(ctx, fmt.Sprintf("stan://%s/%s?client_id=%s", stanAddr, clusterID, bps.GenClientID()))
+		subject, err = bps.NewSubscriber(ctx, fmt.Sprintf("nats://%s", natsAddr))
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -86,17 +86,17 @@ var _ = Describe("Subscriber", func() {
 // ----------------------------------------------------------------------------
 
 func TestSuite(t *testing.T) {
-	if !strings.Contains(os.Getenv("BPS_TEST"), "stan") {
+	if !strings.Contains(os.Getenv("BPS_TEST"), "nats") {
 		t.Skipf("skipping test")
 		return
 	}
 
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "bps/stan")
+	RunSpecs(t, "bps/nats")
 }
 
 func readMessages(topic string, count int) ([]*bps.PubMessage, error) {
-	conn, err := stan.Connect(clusterID, bps.GenClientID(), stan.NatsURL("nats://"+stanAddr))
+	conn, err := nats.Connect("nats://" + natsAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -107,9 +107,9 @@ func readMessages(topic string, count int) ([]*bps.PubMessage, error) {
 	defer close(done)
 
 	var msgs []*bps.PubMessage
-	var sub stan.Subscription
+	var sub *nats.Subscription
 
-	sub, err = conn.Subscribe(topic, func(msg *stan.Msg) {
+	sub, err = conn.Subscribe(topic, func(msg *nats.Msg) {
 		msgs = append(msgs, &bps.PubMessage{
 			Data: msg.Data,
 		})
@@ -119,11 +119,12 @@ func readMessages(topic string, count int) ([]*bps.PubMessage, error) {
 			default:
 			}
 		}
-	}, stan.DeliverAllAvailable())
+	})
 	if err != nil {
 		return nil, err
 	}
 	defer sub.Unsubscribe()
+	sub.AutoUnsubscribe(count)
 
 	// wait till messages consumed:
 	<-done
@@ -132,7 +133,7 @@ func readMessages(topic string, count int) ([]*bps.PubMessage, error) {
 }
 
 func seedMessages(topic string, messages []bps.SubMessage) error {
-	conn, err := stan.Connect(clusterID, bps.GenClientID(), stan.NatsURL("nats://"+stanAddr))
+	conn, err := nats.Connect("nats://" + natsAddr)
 	if err != nil {
 		return err
 	}

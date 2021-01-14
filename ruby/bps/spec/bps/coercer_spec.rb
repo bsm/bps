@@ -1,7 +1,9 @@
 require 'spec_helper'
 
 RSpec.describe BPS::Coercer do
-  subject do
+  subject { coercer }
+
+  let(:coercer) do
     described_class.new(
       name: :string,
       codec: :symbol,
@@ -11,7 +13,6 @@ RSpec.describe BPS::Coercer do
       tags: [:string],
     )
   end
-
   let :options do
     {
       name: 123,
@@ -24,13 +25,13 @@ RSpec.describe BPS::Coercer do
     }
   end
 
-  it 'should validate' do
+  it 'validates' do
     expect { described_class.new(name: :unknown) }.to raise_error(ArgumentError, /Unknown type :unknown/)
     expect { described_class.new(bad: []) }.to raise_error(ArgumentError, /Array types must have exactly one entry/)
   end
 
-  it 'should coerce options' do
-    expect(subject.coerce(options)).to eq(
+  it 'coerces options' do
+    expect(coercer.coerce(options)).to eq(
       name: '123',
       codec: :snappy,
       retries: 4,

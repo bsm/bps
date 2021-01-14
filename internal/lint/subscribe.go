@@ -12,10 +12,17 @@ import (
 
 // SubscriberInput for the shared test.
 type SubscriberInput struct {
-	// Subject should return a subject to be tested, with given topic/messages seeded.
+	// Subject should be set to a subject to be tested.
+	// It can optionally prepare (pre-create) or seed the topic at this point (the same topic will be used for Seed-ing later).
 	// Caller should handle all the subject teardown/cleanup.
-	// Topics are guaranteed to be prefixed with "bps-unittest-".
 	Subject func(topic string, messages []bps.SubMessage) bps.Subscriber
+
+	// Seed can seed given topic/messages for Subject unless already seeded.
+	// Topics are guaranteed to be prefixed with "bps-unittest-".
+	Seed func(topic string, messages []bps.SubMessage)
+
+	// SubOptions can hold additional subscription options.
+	SubOptions []bps.SubOption
 }
 
 // Subscriber lints subscribers.
@@ -23,24 +30,38 @@ func Subscriber(input *SubscriberInput) {
 	var subject bps.Subscriber
 	var handler *mockHandler
 	var topic string
+	var messages []bps.SubMessage
 
 	ginkgo.BeforeEach(func() {
 		cycle := time.Now().UnixNano()
 		topic = fmt.Sprintf("bps-unittest-topic-%d-a", cycle)
-
-		subject = input.Subject(topic, []bps.SubMessage{
+		messages = []bps.SubMessage{
 			bps.RawSubMessage("message-1"),
 			bps.RawSubMessage("message-2"),
-		})
+		}
+
+		subject = input.Subject(topic, messages)
 		handler = &mockHandler{}
 	})
 
 	ginkgo.It("should subscribe", func() {
-		sub, err := subject.Topic(topic).Subscribe(handler, bps.StartAt(bps.PositionOldest))
-		Ω.Expect(err).NotTo(Ω.HaveOccurred())
-		defer sub.Close() // multiple calls are safe
+		// produce concurrently:
+		go func() {
+			defer ginkgo.GinkgoRecover()
 
-		Ω.Eventually(handler.Len).Should(Ω.Equal(2))
+			// give subscriber some time to actually start consuming:
+			time.Sleep(subscriptionWaitDelay)
+
+			if input.Seed != nil {
+				input.Seed(topic, messages)
+			}
+		}()
+
+		sub, err := subject.Topic(topic).Subscribe(handler, input.SubOptions...)
+		Ω.Expect(err).NotTo(Ω.HaveOccurred())
+		defer sub.Close() // multiple calls must be safe
+
+		Ω.Eventually(handler.Len, 3*subscriptionWaitDelay).Should(Ω.Equal(2))
 		Ω.Expect(handler.Data()).To(Ω.ConsistOf("message-1", "message-2"))
 
 		Ω.Expect(sub.Close()).To(Ω.Succeed())

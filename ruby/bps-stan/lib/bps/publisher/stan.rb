@@ -37,7 +37,7 @@ module BPS
         port = url.port&.to_s || '4222'
         servers = CGI.unescape(url.host).split(',').map do |host|
           addr = "nats://#{host}"
-          addr << ':' << port unless addr.match(/:\d+$/)
+          addr << ':' << port unless /:\d+$/.match?(addr)
           addr
         end
         opts = CGI.parse(url.query || '').transform_values {|v| v.size == 1 ? v[0] : v }

@@ -3,6 +3,7 @@ package lint
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/bsm/bps"
@@ -44,17 +45,46 @@ func Publisher(input *PublisherInput) {
 	})
 
 	ginkgo.It("should publish", func() {
-		Ω.Expect(subject.Topic(topicA).Publish(ctx, &bps.PubMessage{Data: []byte("v1")})).To(Ω.Succeed())
-		Ω.Expect(subject.Topic(topicB).Publish(ctx, &bps.PubMessage{Data: []byte("v2")})).To(Ω.Succeed())
-		Ω.Expect(subject.Topic(topicA).Publish(ctx, &bps.PubMessage{Data: []byte("v3")})).To(Ω.Succeed())
+		// run publishing and consuming concurrently (mostly for StartPosition=PositionNewest case):
+		var threads sync.WaitGroup
 
-		Ω.Eventually(func() ([]*bps.PubMessage, error) {
-			return input.Messages(topicA, 2)
-		}, "3s").Should(haveData("v1", "v3"))
+		// produce concurrently:
+		threads.Add(1)
+		go func() {
+			defer threads.Done()
+			defer ginkgo.GinkgoRecover()
 
-		Ω.Eventually(func() ([]*bps.PubMessage, error) {
-			return input.Messages(topicB, 1)
-		}, "3s").Should(haveData("v2"))
+			// give subscribers some time to actually start consuming (subscribe):
+			time.Sleep(subscriptionWaitDelay)
+
+			Ω.Expect(subject.Topic(topicA).Publish(ctx, &bps.PubMessage{Data: []byte("v1")})).To(Ω.Succeed())
+			Ω.Expect(subject.Topic(topicB).Publish(ctx, &bps.PubMessage{Data: []byte("v2")})).To(Ω.Succeed())
+			Ω.Expect(subject.Topic(topicA).Publish(ctx, &bps.PubMessage{Data: []byte("v3")})).To(Ω.Succeed())
+		}()
+
+		// consume different topics concurrently:
+		threads.Add(1)
+		go func() {
+			defer threads.Done()
+			defer ginkgo.GinkgoRecover()
+
+			Ω.Eventually(func() ([]*bps.PubMessage, error) {
+				return input.Messages(topicA, 2)
+			}, 3*subscriptionWaitDelay).Should(haveData("v1", "v3"))
+		}()
+
+		// consume different topics concurrently:
+		threads.Add(1)
+		go func() {
+			defer threads.Done()
+			defer ginkgo.GinkgoRecover()
+
+			Ω.Eventually(func() ([]*bps.PubMessage, error) {
+				return input.Messages(topicB, 1)
+			}, 3*subscriptionWaitDelay).Should(haveData("v2"))
+		}()
+
+		threads.Wait()
 	})
 }
 

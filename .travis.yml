@@ -4,8 +4,9 @@ matrix:
       go:
         - 1.14.x
       env:
-        - BPS_TEST=kafka,nats
-        - NATS_ADDR=127.0.0.1:4223
+        - BPS_TEST=kafka,nats,stan
+        - NATS_ADDR=127.0.0.1:4222
+        - STAN_ADDR=127.0.0.1:4223
       services:
         - docker
       install:
@@ -23,8 +24,9 @@ matrix:
       go:
         - 1.15.x
       env:
-        - BPS_TEST=kafka,nats
-        - NATS_ADDR=127.0.0.1:4223
+        - BPS_TEST=kafka,nats,stan
+        - NATS_ADDR=127.0.0.1:4222
+        - STAN_ADDR=127.0.0.1:4223
       services:
         - docker
       install:

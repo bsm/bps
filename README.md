@@ -19,9 +19,14 @@ Check auto-generated documentation:
 ```shell
 # go:
 go get -u github.com/bsm/bps
+go get -u github.com/bsm/bps/kafka
+go get -u github.com/bsm/bps/nats
+go get -u github.com/bsm/bps/stan
 
 # ruby:
 bundle add 'bps-kafka'
+bundle add 'bps-nats'
+bundle add 'bps-stan'
 ```
 
 ## Backends: Go
@@ -29,10 +34,14 @@ bundle add 'bps-kafka'
 - [Google PubSub](https://godoc.org/github.com/bsm/bps/pubsub)
 - [File](https://godoc.org/github.com/bsm/bps/file)
 - [Kafka](https://godoc.org/github.com/bsm/bps/kafka)
+- [NATS](https://godoc.org/github.com/bsm/bps/nats)
+- [STAN (NATS-streaming)](https://godoc.org/github.com/bsm/bps/stan)
 
 ## Backends: Ruby
 
 - [Kafka](https://rubygems.org/gems/bps-kafka)
+- [NATS](https://rubygems.org/gems/bps-nats)
+- [STAN (NATS-streaming)](https://rubygems.org/gems/bps-stan)
 
 ## Publishing: Go
 
