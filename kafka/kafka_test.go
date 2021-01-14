@@ -114,6 +114,7 @@ var _ = Describe("Subscriber", func() {
 				Seed: func(topic string, messages []bps.SubMessage) {
 					Expect(seedMessages(topic, messages)).To(Succeed())
 				},
+				SubOptions: []bps.SubOption{bps.StartAt(bps.PositionOldest)},
 			}
 		})
 

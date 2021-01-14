@@ -70,7 +70,7 @@ func Publisher(input *PublisherInput) {
 
 			Ω.Eventually(func() ([]*bps.PubMessage, error) {
 				return input.Messages(topicA, 2)
-			}, 5*subscriptionWaitDelay).Should(haveData("v1", "v3"))
+			}, 3*subscriptionWaitDelay).Should(haveData("v1", "v3"))
 		}()
 
 		// consume different topics concurrently:
@@ -81,7 +81,7 @@ func Publisher(input *PublisherInput) {
 
 			Ω.Eventually(func() ([]*bps.PubMessage, error) {
 				return input.Messages(topicB, 1)
-			}, 5*subscriptionWaitDelay).Should(haveData("v2"))
+			}, 3*subscriptionWaitDelay).Should(haveData("v2"))
 		}()
 
 		threads.Wait()

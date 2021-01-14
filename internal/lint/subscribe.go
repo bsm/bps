@@ -20,6 +20,9 @@ type SubscriberInput struct {
 	// Seed can seed given topic/messages for Subject unless already seeded.
 	// Topics are guaranteed to be prefixed with "bps-unittest-".
 	Seed func(topic string, messages []bps.SubMessage)
+
+	// SubOptions can hold additional subscription options.
+	SubOptions []bps.SubOption
 }
 
 // Subscriber lints subscribers.
@@ -54,11 +57,11 @@ func Subscriber(input *SubscriberInput) {
 			}
 		}()
 
-		sub, err := subject.Topic(topic).Subscribe(handler)
+		sub, err := subject.Topic(topic).Subscribe(handler, input.SubOptions...)
 		Ω.Expect(err).NotTo(Ω.HaveOccurred())
 		defer sub.Close() // multiple calls must be safe
 
-		Ω.Eventually(handler.Len, 5*subscriptionWaitDelay).Should(Ω.Equal(2))
+		Ω.Eventually(handler.Len, 3*subscriptionWaitDelay).Should(Ω.Equal(2))
 		Ω.Expect(handler.Data()).To(Ω.ConsistOf("message-1", "message-2"))
 
 		Ω.Expect(sub.Close()).To(Ω.Succeed())
