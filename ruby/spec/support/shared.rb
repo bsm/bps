@@ -13,13 +13,13 @@ RSpec.shared_examples 'publisher' do
     subject.close
   end
 
-  it 'should register' do
+  it 'registers' do
     expect(subject).to be_a(described_class)
   end
 
-  it 'should publish' do
+  it 'publishes' do
     topic_name = "bps-test-topic-#{SecureRandom.uuid}"
-    messages = 3.times.map { "bps-test-message-#{SecureRandom.uuid}" }
+    messages = Array.new(3) { "bps-test-message-#{SecureRandom.uuid}" }
 
     # call optional `prepare_topic` - it's needed only adapters
     # that don't retain messages so subscribing must be done before publishing:

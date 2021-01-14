@@ -2,33 +2,34 @@ require 'spec_helper'
 require 'bps/kafka'
 
 RSpec.describe 'Kafka', kafka: true do
-  context 'resolve addrs' do
-    let(:client) { double('Kafka', producer: nil) }
+  context 'with addr resolving' do
+    let(:client) { instance_double(::Kafka::Client, producer: nil) }
+
     before       { allow(::Kafka).to receive(:new).and_return(client) }
 
-    it 'should resolve simple URLs' do
+    it 'resolves simple URLs' do
       if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7')
-        expect(::Kafka).to receive(:new).with(['test.host:9092'], {}).and_return(client)
+        allow(::Kafka).to receive(:new).with(['test.host:9092'], {}).and_return(client)
       else
-        expect(::Kafka).to receive(:new).with(['test.host:9092']).and_return(client)
+        allow(::Kafka).to receive(:new).with(['test.host:9092']).and_return(client)
       end
       BPS::Publisher.resolve(URI.parse('kafka+sync://test.host:9092'))
     end
 
-    it 'should resolve URLs with multiple hosts' do
+    it 'resolves URLs with multiple hosts' do
       if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7')
-        expect(::Kafka).to receive(:new).with(['foo.host:9092', 'bar.host:9092'], {}).and_return(client)
+        allow(::Kafka).to receive(:new).with(['foo.host:9092', 'bar.host:9092'], {}).and_return(client)
       else
-        expect(::Kafka).to receive(:new).with(['foo.host:9092', 'bar.host:9092']).and_return(client)
+        allow(::Kafka).to receive(:new).with(['foo.host:9092', 'bar.host:9092']).and_return(client)
       end
       BPS::Publisher.resolve(URI.parse('kafka+sync://foo.host,bar.host:9092'))
     end
 
-    it 'should resolve URLs with multiple hosts/ports' do
+    it 'resolves URLs with multiple hosts/ports' do
       if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7')
-        expect(::Kafka).to receive(:new).with(['foo.host:9093', 'bar.host:9092'], {}).and_return(client)
+        allow(::Kafka).to receive(:new).with(['foo.host:9093', 'bar.host:9092'], {}).and_return(client)
       else
-        expect(::Kafka).to receive(:new).with(['foo.host:9093', 'bar.host:9092']).and_return(client)
+        allow(::Kafka).to receive(:new).with(['foo.host:9093', 'bar.host:9092']).and_return(client)
       end
       BPS::Publisher.resolve(URI.parse('kafka+sync://foo.host%3A9093,bar.host'))
     end

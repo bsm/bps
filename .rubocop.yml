@@ -1,13 +1,18 @@
-inherit_from:
-  - https://gitlab.com/bsm/misc/raw/master/rubocop/default.yml
+inherit_gem:
+  rubocop-bsm:
+    - default.yml
+inherit_mode:
+  merge:
+    - Exclude
 
 AllCops:
   TargetRubyVersion: "2.6"
-Metrics/ParameterLists:
-  Max: 8
-Metrics/MethodLength:
-  Exclude:
-    - "ruby/bps/lib/bps/coercer.rb"
+
+# Metrics/ParameterLists:
+#   Max: 8
+# Metrics/MethodLength:
+#   Exclude:
+#     - "ruby/bps/lib/bps/coercer.rb"
 Naming/FileName:
   Exclude:
     - "ruby/bps-kafka/lib/bps-kafka.rb"
