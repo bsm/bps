@@ -61,7 +61,7 @@ RSpec.describe 'NATS', nats: true do
     # blocking queue to gather messages in background thread:
 
     # subscribe to test topic, non-blocking; messages will be pushed into blocking queue:
-    def prepare_topic(topic_name, num_messages)
+    def setup_topic(topic_name, num_messages)
       nats_client.subscribe(topic_name, max: num_messages) {|msg| messages_queue << msg }
     end
 

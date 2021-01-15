@@ -21,10 +21,10 @@ RSpec.shared_examples 'publisher' do
     topic_name = "bps-test-topic-#{SecureRandom.uuid}"
     messages = Array.new(3) { "bps-test-message-#{SecureRandom.uuid}" }
 
-    # call optional `prepare_topic` - it's needed only adapters
+    # call optional `setup_topic` - it's needed only adapters
     # that don't retain messages so subscribing must be done before publishing:
     begin
-      prepare_topic(topic_name, messages.count)
+      setup_topic(topic_name, messages.count)
     rescue NoMethodError # rubocop:disable Lint/SuppressedException
     end
 
