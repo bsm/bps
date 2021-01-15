@@ -42,12 +42,16 @@ var _ = Describe("RegisterSubscriber", func() {
 
 var _ = Describe("InMemSubscriber", func() {
 	Context("lint", func() {
+		var subject *bps.InMemSubscriber
 		var shared lint.SubscriberInput
 
 		BeforeEach(func() {
+			subject = bps.NewInMemSubscriber(nil)
+
 			shared = lint.SubscriberInput{
-				Subject: func(topic string, messages []bps.SubMessage) bps.Subscriber {
-					return bps.NewInMemSubscriber(
+				Subject: subject,
+				Seed: func(topic string, messages []bps.SubMessage) {
+					subject.Replace(
 						map[string][]bps.SubMessage{
 							topic: messages,
 						},
@@ -56,6 +60,6 @@ var _ = Describe("InMemSubscriber", func() {
 			}
 		})
 
-		lint.Subscriber(&shared)
+		lint.SubscriberPositionOldest(&shared)
 	})
 })
