@@ -78,7 +78,7 @@ GEM
       unicode-display_width (>= 1.4.0, < 3.0)
     rubocop-ast (1.4.0)
       parser (>= 2.7.1.5)
-    rubocop-bsm (0.5.2)
+    rubocop-bsm (0.5.3)
       rubocop (~> 1.0)
       rubocop-performance
       rubocop-rails
