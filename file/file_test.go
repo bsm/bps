@@ -66,7 +66,7 @@ var _ = Describe("Publisher", func() {
 			}
 		})
 
-		lint.Publisher(&shared)
+		lint.PublisherPositionOldest(&shared)
 	})
 })
 
@@ -99,14 +99,14 @@ var _ = Describe("Subscriber", func() {
 
 		BeforeEach(func() {
 			shared = lint.SubscriberInput{
-				Subject: func(topic string, messages []bps.SubMessage) bps.Subscriber {
+				Subject: subject,
+				Seed: func(topic string, messages []bps.SubMessage) {
 					seedTopic(dir, topic, messages)
-					return subject
 				},
 			}
 		})
 
-		lint.Subscriber(&shared)
+		lint.SubscriberPositionOldest(&shared)
 	})
 })
 

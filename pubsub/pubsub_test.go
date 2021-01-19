@@ -51,7 +51,9 @@ var _ = Describe("Publisher", func() {
 			}
 		})
 
-		lint.Publisher(&shared)
+		// TODO: check how it actually works, there's no support for StartAt variants:
+		lint.PublisherPositionNewest(&shared)
+		lint.PublisherPositionOldest(&shared)
 	})
 })
 
@@ -84,16 +86,16 @@ var _ = Describe("Subscriber", func() {
 
 		BeforeEach(func() {
 			shared = lint.SubscriberInput{
-				Subject: func(topic string, messages []bps.SubMessage) bps.Subscriber {
-					return subject
-				},
+				Subject: subject,
 				Seed: func(topic string, messages []bps.SubMessage) {
 					Expect(seedMessages(topic, messages)).To(Succeed())
 				},
 			}
 		})
 
-		lint.Subscriber(&shared)
+		// TODO: check how it actually works, there's no support for StartAt variants:
+		lint.SubscriberPositionOldest(&shared)
+		lint.SubscriberPositionNewest(&shared)
 	})
 })
 
