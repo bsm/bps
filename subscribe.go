@@ -226,6 +226,14 @@ func NewInMemSubscriber(messagesByTopic map[string][]SubMessage) *InMemSubscribe
 	return &InMemSubscriber{msgs: byTopic}
 }
 
+// Replace replaces messages.
+// It does not affect already used topics (they will return messages, available before Replace).
+func (s *InMemSubscriber) Replace(messagesByTopic map[string][]SubMessage) {
+	s.mu.Lock()
+	s.msgs = messagesByTopic
+	s.mu.Unlock()
+}
+
 // Topic returns named topic handle.
 // Seeded messages are copied for each topic handle
 func (s *InMemSubscriber) Topic(topic string) SubTopic {

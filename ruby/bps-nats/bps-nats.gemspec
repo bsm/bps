@@ -1,10 +1,10 @@
 Gem::Specification.new do |s|
-  s.name        = 'bps-stan'
+  s.name        = 'bps-nats'
   s.version     = File.read(File.expand_path('../../.version', __dir__)).strip
   s.platform    = Gem::Platform::RUBY
 
   s.licenses    = ['Apache-2.0']
-  s.summary     = 'BPS adapter for nats-streaming'
+  s.summary     = 'BPS adapter for nats'
   s.description = 'https://github.com/bsm/bps'
 
   s.authors     = ['Black Square Media']
@@ -18,5 +18,5 @@ Gem::Specification.new do |s|
   s.required_ruby_version = '>= 2.6.0'
 
   s.add_dependency 'bps', s.version
-  s.add_dependency 'nats-streaming', '~> 0.2.2'
+  s.add_dependency 'nats-pure', '~> 0.6.2'
 end

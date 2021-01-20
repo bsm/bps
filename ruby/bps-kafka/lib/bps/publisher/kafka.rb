@@ -102,7 +102,7 @@ module BPS
       def parse_url(url)
         port = url.port&.to_s || '9092'
         CGI.unescape(url.host).split(',').map do |addr|
-          addr << ':' << port unless addr.match(/:\d+$/)
+          addr << ':' << port unless /:\d+$/.match?(addr)
           addr
         end
       end

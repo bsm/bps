@@ -65,6 +65,6 @@ var _ = Describe("InMemPublisher", func() {
 			}
 		})
 
-		lint.Publisher(&shared)
+		lint.PublisherPositionOldest(&shared)
 	})
 })
