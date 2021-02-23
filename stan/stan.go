@@ -15,6 +15,8 @@
 //
 //   queue_group
 //     optional queue group name for queue subscriptions: https://docs.nats.io/developing-with-nats/receiving/queues
+//   durable_name
+//     durable subscriptions name: https://docs.nats.io/developing-with-nats-streaming/durables
 //
 package stan
 
@@ -45,7 +47,8 @@ func init() {
 			return nil, err
 		}
 		queueGroup := u.Query().Get("queue_group")
-		return newSubscriberWithNatsConn(natsConn, clusterID, clientID, queueGroup, opts)
+		durableName := u.Query().Get("durable_name")
+		return newSubscriberWithNatsConn(natsConn, clusterID, clientID, queueGroup, durableName, opts)
 	})
 }
 
@@ -106,36 +109,40 @@ func (t *pubTopic) Publish(ctx context.Context, msg *bps.PubMessage) error {
 // ----------------------------------------------------------------------------
 
 type subscriber struct {
-	conn       stan.Conn
-	natsConn   *natsio.Conn // managed NATS connection, if any
-	queueGroup string       // optional, switches between .Subscribe and .QueueSubscribe
+	conn        stan.Conn
+	natsConn    *natsio.Conn // managed NATS connection, if any
+	queueGroup  string       // optional, switches between .Subscribe and .QueueSubscribe
+	durableName string       // optional
 }
 
 // NewSubscriber constructs a new STAN-backed subscriber.
 // By default, it starts handling from the newest available message (published after subscribing).
 // If queueGroup is specified, all subscriptions will be queue ones: https://docs.nats.io/developing-with-nats/receiving/queues
-func NewSubscriber(stanClusterID, clientID, queueGroup string, opts []stan.Option) (bps.Subscriber, error) {
-	return newSubscriberWithNatsConn(nil, stanClusterID, clientID, queueGroup, opts)
+// If durableName is specified, it will be used for durable subs: https://docs.nats.io/developing-with-nats-streaming/durables
+func NewSubscriber(stanClusterID, clientID, queueGroup, durableName string, opts []stan.Option) (bps.Subscriber, error) {
+	return newSubscriberWithNatsConn(nil, stanClusterID, clientID, queueGroup, durableName, opts)
 }
 
-func newSubscriberWithNatsConn(natsConn *natsio.Conn, stanClusterID, clientID, queueGroup string, opts []stan.Option) (bps.Subscriber, error) {
+func newSubscriberWithNatsConn(natsConn *natsio.Conn, stanClusterID, clientID, queueGroup, durableName string, opts []stan.Option) (bps.Subscriber, error) {
 	c, err := stan.Connect(stanClusterID, clientID, opts...)
 	if err != nil {
 		return nil, err
 	}
 
 	return &subscriber{
-		conn:       c,
-		natsConn:   natsConn,
-		queueGroup: queueGroup,
+		conn:        c,
+		natsConn:    natsConn,
+		queueGroup:  queueGroup,
+		durableName: durableName,
 	}, nil
 }
 
 func (s *subscriber) Topic(name string) bps.SubTopic {
 	return &subTopic{
-		stan:       s.conn,
-		name:       name,
-		queueGroup: s.queueGroup,
+		stan:        s.conn,
+		name:        name,
+		queueGroup:  s.queueGroup,
+		durableName: s.durableName,
 	}
 }
 
@@ -153,9 +160,10 @@ func (s *subscriber) Close() error {
 // ----------------------------------------------------------------------------
 
 type subTopic struct {
-	stan       stan.Conn
-	name       string
-	queueGroup string
+	stan        stan.Conn
+	name        string
+	queueGroup  string
+	durableName string
 }
 
 func (t *subTopic) Subscribe(handler bps.Handler, options ...bps.SubOption) (bps.Subscription, error) {
@@ -177,14 +185,20 @@ func (t *subTopic) Subscribe(handler bps.Handler, options ...bps.SubOption) (bps
 		handler.Handle(bps.RawSubMessage(msg.Data))
 	}
 
+	stanOpts := make([]stan.SubscriptionOption, 0, 2)
+	stanOpts = append(stanOpts, stan.StartAt(startPos))
+	if t.durableName != "" {
+		stanOpts = append(stanOpts, stan.DurableName(t.durableName))
+	}
+
 	var (
 		sub stan.Subscription
 		err error
 	)
 	if t.queueGroup == "" {
-		sub, err = t.stan.Subscribe(t.name, stanHandler, stan.StartAt(startPos))
+		sub, err = t.stan.Subscribe(t.name, stanHandler, stanOpts...)
 	} else {
-		sub, err = t.stan.QueueSubscribe(t.name, t.queueGroup, stanHandler, stan.StartAt(startPos))
+		sub, err = t.stan.QueueSubscribe(t.name, t.queueGroup, stanHandler, stanOpts...)
 	}
 
 	if err != nil {
