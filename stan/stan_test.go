@@ -1,3 +1,7 @@
+/*
+BPS_TEST=stan STAN_ADDR=127.0.0.1:4223 go test -count=1
+*/
+
 package stan_test
 
 import (
@@ -55,6 +59,45 @@ var _ = Describe("Subscriber", func() {
 	BeforeEach(func() {
 		var err error
 		subject, err = bps.NewSubscriber(ctx, fmt.Sprintf("stan://%s/%s?client_id=%s", stanAddr, clusterID, bps.GenClientID()))
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		Expect(subject.Close()).To(Succeed())
+	})
+
+	It("should init from URL", func() {
+		Expect(subject).NotTo(BeNil())
+	})
+
+	Context("lint", func() {
+		var shared lint.SubscriberInput
+
+		BeforeEach(func() {
+			shared = lint.SubscriberInput{
+				Subject: subject,
+				Seed: func(topic string, messages []bps.SubMessage) {
+					Expect(seedMessages(topic, messages)).To(Succeed())
+				},
+			}
+		})
+
+		lint.SubscriberPositionNewest(&shared)
+		lint.SubscriberPositionOldest(&shared)
+	})
+})
+
+// Not a proper Queue Subscriptions test, but smth to make sure subscriber is not broken
+var _ = Describe("Subscriber (Queue)", func() {
+	var subject bps.Subscriber
+	var ctx = context.Background()
+
+	BeforeEach(func() {
+		clientID := bps.GenClientID()
+		queueGroup := bps.GenClientID() // something random-ish for tests as well
+
+		var err error
+		subject, err = bps.NewSubscriber(ctx, fmt.Sprintf("stan://%s/%s?client_id=%s&queue_group=%s", stanAddr, clusterID, clientID, queueGroup))
 		Expect(err).NotTo(HaveOccurred())
 	})
 
