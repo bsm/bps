@@ -2,28 +2,8 @@ require 'cgi'
 require 'stan/client'
 
 module BPS
-  module Publisher
+  module Subscriber
     class STAN < Abstract
-      class Topic < Abstract::Topic
-        def initialize(client, topic)
-          super()
-
-          @client = client
-          @topic = topic
-        end
-
-        def publish(message, **_opts)
-          @client.publish(@topic, message)
-        end
-
-        def flush(**)
-          # noop
-        end
-      end
-
-      # @param [String] cluster ID.
-      # @param [String] client ID.
-      # @param [Hash] options.
       def initialize(cluster_id, client_id, nats: {}, **opts)
         super()
 
@@ -35,15 +15,22 @@ module BPS
           nats[:tls] = ctx
         end
 
-        @topics = {}
         @client = ::STAN::Client.new
         @client.connect(cluster_id, client_id, nats: nats, **opts.slice(*::BPS::STAN::Utils::CLIENT_OPTS.keys))
       end
 
-      def topic(name)
-        @topics[name] ||= self.class::Topic.new(@client, name)
+      # Subscribe to a topic
+      # @param topic [String] topic the topic name.
+      def subscribe(topic, **opts)
+        # important opts:
+        # - queue: 'queue-name'          # https://docs.nats.io/developing-with-nats-streaming/queues
+        # - durable_name: 'durable-name' # https://docs.nats.io/developing-with-nats-streaming/durables
+        @client.subscribe(topic, **opts) do |msg|
+          yield msg.data # TODO: maybe yielding just bytes is not too flexible? But IMO can wait till (much) later
+        end
       end
 
+      # Close the subscriber.
       def close
         # NATS/STAN does not survive multi-closes, so close only once:
         @client&.close
