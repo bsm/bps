@@ -12,7 +12,8 @@ RSpec.describe 'STAN', stan: true do
         .to receive(:new)
         .with('CLUSTER', 'CLIENT', nats: { servers: ['nats://test.host:4222'] })
         .and_return(publisher)
-      BPS::Publisher.resolve(URI.parse('stan://test.host:4222?cluster_id=CLUSTER&client_id=CLIENT'))
+      expect(BPS::Publisher.resolve(URI.parse('stan://test.host:4222?cluster_id=CLUSTER&client_id=CLIENT')))
+        .to eq(publisher)
     end
 
     it 'resolves URLs with multiple hosts' do
@@ -20,7 +21,8 @@ RSpec.describe 'STAN', stan: true do
         .to receive(:new)
         .with('CLUSTER', 'CLIENT', nats: { servers: ['nats://foo.host:4222', 'nats://bar.host:4222'] })
         .and_return(publisher)
-      BPS::Publisher.resolve(URI.parse('stan://foo.host,bar.host:4222?cluster_id=CLUSTER&client_id=CLIENT'))
+      expect(BPS::Publisher.resolve(URI.parse('stan://foo.host,bar.host:4222?cluster_id=CLUSTER&client_id=CLIENT')))
+        .to eq(publisher)
     end
 
     it 'resolves URLs with multiple hosts/ports' do
@@ -28,7 +30,8 @@ RSpec.describe 'STAN', stan: true do
         .to receive(:new)
         .with('CLUSTER', 'CLIENT', nats: { servers: ['nats://foo.host:4223', 'nats://bar.host:4222'] })
         .and_return(publisher)
-      BPS::Publisher.resolve(URI.parse('stan://foo.host%3A4223,bar.host?cluster_id=CLUSTER&client_id=CLIENT'))
+      expect(BPS::Publisher.resolve(URI.parse('stan://foo.host%3A4223,bar.host?cluster_id=CLUSTER&client_id=CLIENT')))
+        .to eq(publisher)
     end
   end
 
