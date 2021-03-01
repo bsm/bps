@@ -1,28 +1,28 @@
 PATH
   remote: ruby/bps-kafka
   specs:
-    bps-kafka (0.2.0)
-      bps (= 0.2.0)
+    bps-kafka (0.2.1)
+      bps (= 0.2.1)
       ruby-kafka (>= 1.1.0.beta1)
 
 PATH
   remote: ruby/bps-nats
   specs:
-    bps-nats (0.2.0)
-      bps (= 0.2.0)
+    bps-nats (0.2.1)
+      bps (= 0.2.1)
       nats-pure (~> 0.6.2)
 
 PATH
   remote: ruby/bps-stan
   specs:
-    bps-stan (0.2.0)
-      bps (= 0.2.0)
+    bps-stan (0.2.1)
+      bps (= 0.2.1)
       nats-streaming (~> 0.2.2)
 
 PATH
   remote: ruby/bps
   specs:
-    bps (0.2.0)
+    bps (0.2.1)
 
 GEM
   remote: https://rubygems.org/
@@ -38,7 +38,7 @@ GEM
     diff-lcs (1.4.4)
     digest-crc (0.6.3)
       rake (>= 12.0.0, < 14.0.0)
-    google-protobuf (3.14.0)
+    google-protobuf (3.15.1-x86_64-linux)
     i18n (1.8.7)
       concurrent-ruby (~> 1.0)
     minitest (5.14.3)

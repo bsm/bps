@@ -24,20 +24,11 @@ module BPS
       # @param [String] cluster ID.
       # @param [String] client ID.
       # @param [Hash] options.
-      def initialize(cluster_id, client_id, nats: {}, **opts)
+      def initialize(cluster_id, client_id, **opts)
         super()
 
-        # handle TLS if CA file is provided:
-        if !nats[:tls] && nats[:tls_ca_file]
-          ctx = OpenSSL::SSL::SSLContext.new
-          ctx.set_params
-          ctx.ca_file = nats.delete(:tls_ca_file)
-          nats[:tls] = ctx
-        end
-
         @topics = {}
-        @client = ::STAN::Client.new
-        @client.connect(cluster_id, client_id, nats: nats, **opts.slice(*::BPS::STAN::Utils::CLIENT_OPTS.keys))
+        @client = ::BPS::STAN.connect(cluster_id, client_id, **opts)
       end
 
       def topic(name)
