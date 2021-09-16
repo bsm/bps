@@ -26,6 +26,8 @@ module BPS
 
       # Close the subscriber.
       def close
+        super
+
         # NATS/STAN does not survive multi-closes, so close only once:
         @client&.close
         @client = nil

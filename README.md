@@ -63,13 +63,13 @@ func main() {
 	topicA := pub.Topic("topic-a")
 	topicB := pub.Topic("topic-b")
 
-	topicA.Publish(ctx, &bps.PubMessage{
+	_ = topicA.Publish(ctx, &bps.PubMessage{
 		Data: []byte("message-1"),
 	})
-	topicB.Publish(ctx, &bps.PubMessage{
+	_ = topicB.Publish(ctx, &bps.PubMessage{
 		Data: []byte("message-2"),
 	})
-	topicA.Publish(ctx, &bps.PubMessage{
+	_ = topicA.Publish(ctx, &bps.PubMessage{
 		Data: []byte("message-2"),
 	})
 
@@ -125,13 +125,13 @@ func main() {
 	topicA := pub.Topic("topic-a")
 	topicB := pub.Topic("topic-b")
 
-	topicA.Publish(ctx, &bps.PubMessage{
+	_ = topicA.Publish(ctx, &bps.PubMessage{
 		Data: []byte("message-1"),
 	})
-	topicB.Publish(ctx, &bps.PubMessage{
+	_ = topicB.Publish(ctx, &bps.PubMessage{
 		Data: []byte("message-2"),
 	})
-	topicA.Publish(ctx, &bps.PubMessage{
+	_ = topicA.Publish(ctx, &bps.PubMessage{
 		Data: []byte("message-2"),
 	})
 

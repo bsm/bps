@@ -1,0 +1,50 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  BPS_TEST: kafka,nats,stan
+  KAFKA_ADDRS: 127.0.0.1:9092
+  NATS_ADDRS: 127.0.0.1:4222
+  STAN_ADDRS: 127.0.0.1:4223
+
+jobs:
+  ruby:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby-version: ["2.6", "2.7", "3.0"]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+          bundler-cache: true
+      - run: docker-compose -f testdata/docker-compose.yml up --detach --build
+      - run: bundle exec rake
+      - run: docker-compose -f testdata/docker-compose.yml down
+        if: always()
+  go:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: [1.16.x, 1.17.x]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go-version }}
+      - run: docker-compose -f testdata/docker-compose.yml up --detach --build
+      - run: make test
+      - run: docker-compose -f testdata/docker-compose.yml down
+        if: always()

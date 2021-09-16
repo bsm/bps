@@ -33,7 +33,7 @@ RSpec.describe 'NATS', nats: true do
   end
 
   context BPS::Publisher::NATS do
-    let(:nats_servers) { ENV.fetch('NATS_SERVERS', '127.0.0.1:4222').split(',') }
+    let(:nats_servers) { ENV.fetch('NATS_ADDRS', '127.0.0.1:4222').split(',') }
     let(:messages_queue) { Queue.new }
     let(:nats_servers_with_scheme) { nats_servers.map {|s| "nats://#{s}" } }
 

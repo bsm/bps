@@ -39,7 +39,7 @@ RSpec.describe 'STAN', stan: true do
     let(:cluster_id) { 'test-cluster' } # this is a default cluster for https://hub.docker.com/_/nats-streaming
     let(:client_id)  { 'bps-test' }
 
-    let(:nats_servers) { ENV.fetch('STAN_SERVERS', '127.0.0.1:4222').split(',') }
+    let(:nats_servers) { ENV.fetch('STAN_ADDRS', '127.0.0.1:4222').split(',') }
     let(:nats_servers_with_scheme) { nats_servers.map {|s| "nats://#{s}" } }
 
     let(:subscriber_url) { "stan://#{CGI.escape(nats_servers.join(','))}/?cluster_id=#{cluster_id}&client_id=#{client_id}" }

@@ -71,6 +71,8 @@ module BPS
       end
 
       def close
+        super
+
         @client.close
       end
     end

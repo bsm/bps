@@ -15,5 +15,7 @@ func Example() {
 	}
 	defer pub.Close()
 
-	pub.Topic("topic").Publish(ctx, &bps.PubMessage{Data: []byte("message")})
+	if err := pub.Topic("topic").Publish(ctx, &bps.PubMessage{Data: []byte("message")}); err != nil {
+		panic(err.Error())
+	}
 }

@@ -11,17 +11,19 @@ import (
 
 func ExamplePublisher() {
 	ctx := context.TODO()
-	pub, err := bps.NewPublisher(ctx, "nats://"+natsAddr)
+	pub, err := bps.NewPublisher(ctx, "nats://"+natsAddrs)
 	if err != nil {
 		panic(err.Error())
 	}
 	defer pub.Close()
 
-	pub.Topic("topic").Publish(ctx, &bps.PubMessage{Data: []byte("message")})
+	if err := pub.Topic("topic").Publish(ctx, &bps.PubMessage{Data: []byte("message")}); err != nil {
+		panic(err.Error())
+	}
 }
 
 func ExampleSubscriber() {
-	subscriber, err := bps.NewSubscriber(context.TODO(), "nats://"+natsAddr)
+	subscriber, err := bps.NewSubscriber(context.TODO(), "nats://"+natsAddrs)
 	if err != nil {
 		panic(err.Error())
 	}

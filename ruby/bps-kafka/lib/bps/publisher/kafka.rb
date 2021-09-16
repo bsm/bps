@@ -93,6 +93,8 @@ module BPS
       end
 
       def close
+        super
+
         @producer.shutdown
         @client.close
       end
