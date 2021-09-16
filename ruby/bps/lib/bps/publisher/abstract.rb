@@ -1,3 +1,5 @@
+require 'securerandom'
+
 module BPS
   module Publisher
     class Abstract
@@ -12,7 +14,8 @@ module BPS
       end
 
       def initialize
-        ObjectSpace.define_finalizer(self, proc { close })
+        @uuid = SecureRandom.uuid
+        ObjectSpace.define_finalizer(@uuid, proc { close })
       end
 
       # Retrieve a topic handle.
@@ -22,7 +25,9 @@ module BPS
       end
 
       # Close the publisher.
-      def close; end
+      def close
+        ObjectSpace.undefine_finalizer(@uuid)
+      end
     end
   end
 end

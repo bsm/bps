@@ -1,5 +1,5 @@
 /*
-BPS_TEST=stan STAN_ADDR=127.0.0.1:4223 go test -count=1
+BPS_TEST=stan STAN_ADDRS=127.0.0.1:4223 go test -count=1
 */
 
 package stan_test
@@ -25,7 +25,7 @@ var _ = Describe("Publisher", func() {
 
 	BeforeEach(func() {
 		var err error
-		subject, err = bps.NewPublisher(ctx, fmt.Sprintf("stan://%s/%s?client_id=%s", stanAddr, clusterID, bps.GenClientID()))
+		subject, err = bps.NewPublisher(ctx, fmt.Sprintf("stan://%s/%s?client_id=%s", stanAddrs, clusterID, bps.GenClientID()))
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -58,7 +58,7 @@ var _ = Describe("Subscriber", func() {
 
 	BeforeEach(func() {
 		var err error
-		subject, err = bps.NewSubscriber(ctx, fmt.Sprintf("stan://%s/%s?client_id=%s", stanAddr, clusterID, bps.GenClientID()))
+		subject, err = bps.NewSubscriber(ctx, fmt.Sprintf("stan://%s/%s?client_id=%s", stanAddrs, clusterID, bps.GenClientID()))
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -97,7 +97,7 @@ var _ = Describe("Subscriber (Queue)", func() {
 		queueGroup := bps.GenClientID() // something random-ish for tests as well
 
 		var err error
-		subject, err = bps.NewSubscriber(ctx, fmt.Sprintf("stan://%s/%s?client_id=%s&queue_group=%s", stanAddr, clusterID, clientID, queueGroup))
+		subject, err = bps.NewSubscriber(ctx, fmt.Sprintf("stan://%s/%s?client_id=%s&queue_group=%s", stanAddrs, clusterID, clientID, queueGroup))
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -139,7 +139,7 @@ func TestSuite(t *testing.T) {
 }
 
 func readMessages(topic string, count int) ([]*bps.PubMessage, error) {
-	conn, err := stan.Connect(clusterID, bps.GenClientID(), stan.NatsURL("nats://"+stanAddr))
+	conn, err := stan.Connect(clusterID, bps.GenClientID(), stan.NatsURL("nats://"+stanAddrs))
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +166,7 @@ func readMessages(topic string, count int) ([]*bps.PubMessage, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer sub.Unsubscribe()
+	defer func() { _ = sub.Unsubscribe() }()
 
 	// wait till messages consumed:
 	<-done
@@ -175,7 +175,7 @@ func readMessages(topic string, count int) ([]*bps.PubMessage, error) {
 }
 
 func seedMessages(topic string, messages []bps.SubMessage) error {
-	conn, err := stan.Connect(clusterID, bps.GenClientID(), stan.NatsURL("nats://"+stanAddr))
+	conn, err := stan.Connect(clusterID, bps.GenClientID(), stan.NatsURL("nats://"+stanAddrs))
 	if err != nil {
 		return err
 	}

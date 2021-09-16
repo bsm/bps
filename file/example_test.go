@@ -30,7 +30,9 @@ func ExamplePublisher() {
 	defer pub.Close()
 
 	// add a message to topic
-	pub.Topic("topic").Publish(ctx, &bps.PubMessage{Data: []byte("message")})
+	if err := pub.Topic("topic").Publish(ctx, &bps.PubMessage{Data: []byte("message")}); err != nil {
+		panic(err.Error())
+	}
 
 	// check files in dir
 	entries, _ := filepath.Glob(dir + "/*")
@@ -85,7 +87,9 @@ func SeedTopic(ctx context.Context, dir, topic string) {
 	defer pub.Close()
 
 	// add a message to topic
-	pub.Topic("topic").Publish(ctx, &bps.PubMessage{Data: []byte("message")})
+	if err := pub.Topic("topic").Publish(ctx, &bps.PubMessage{Data: []byte("message")}); err != nil {
+		panic(err.Error())
+	}
 
 	// flush/finalize publisher - files should not be written when they are consumed:
 	if err := pub.Close(); err != nil {

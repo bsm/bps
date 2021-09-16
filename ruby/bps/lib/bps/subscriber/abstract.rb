@@ -2,7 +2,8 @@ module BPS
   module Subscriber
     class Abstract
       def initialize
-        ObjectSpace.define_finalizer(self, proc { close })
+        @uuid = SecureRandom.uuid
+        ObjectSpace.define_finalizer(@uuid, proc { close })
       end
 
       # Subscribe to a topic
@@ -12,7 +13,9 @@ module BPS
       end
 
       # Close the subscriber.
-      def close; end
+      def close
+        ObjectSpace.undefine_finalizer(@uuid)
+      end
     end
   end
 end

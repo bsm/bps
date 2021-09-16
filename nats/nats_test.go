@@ -21,7 +21,7 @@ var _ = Describe("Publisher", func() {
 
 	BeforeEach(func() {
 		var err error
-		subject, err = bps.NewPublisher(ctx, fmt.Sprintf("nats://%s", natsAddr))
+		subject, err = bps.NewPublisher(ctx, "nats://"+natsAddrs)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -53,7 +53,7 @@ var _ = Describe("Subscriber", func() {
 
 	BeforeEach(func() {
 		var err error
-		subject, err = bps.NewSubscriber(ctx, fmt.Sprintf("nats://%s", natsAddr))
+		subject, err = bps.NewSubscriber(ctx, "nats://"+natsAddrs)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -94,7 +94,7 @@ func TestSuite(t *testing.T) {
 }
 
 func readMessages(topic string, count int) ([]*bps.PubMessage, error) {
-	conn, err := nats.Connect("nats://" + natsAddr)
+	conn, err := nats.Connect("nats://" + natsAddrs)
 	if err != nil {
 		return nil, err
 	}
@@ -121,8 +121,8 @@ func readMessages(topic string, count int) ([]*bps.PubMessage, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer sub.Unsubscribe()
-	sub.AutoUnsubscribe(count)
+	defer func() { _ = sub.Unsubscribe() }()
+	Expect(sub.AutoUnsubscribe(count)).To(Succeed())
 
 	// wait till messages consumed:
 	<-done
@@ -131,7 +131,7 @@ func readMessages(topic string, count int) ([]*bps.PubMessage, error) {
 }
 
 func seedMessages(topic string, messages []bps.SubMessage) error {
-	conn, err := nats.Connect("nats://" + natsAddr)
+	conn, err := nats.Connect("nats://" + natsAddrs)
 	if err != nil {
 		return err
 	}
