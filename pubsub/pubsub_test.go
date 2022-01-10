@@ -15,8 +15,8 @@ import (
 	"github.com/bsm/bps/pubsub"
 	"google.golang.org/api/iterator"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	. "github.com/bsm/ginkgo"
+	. "github.com/bsm/gomega"
 )
 
 var _ = Describe("Publisher", func() {

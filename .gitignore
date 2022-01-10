@@ -2,3 +2,4 @@
 .*.makefile
 *.gem
 .ruby-version
+*~

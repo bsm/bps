@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/bsm/bps"
-	"github.com/onsi/ginkgo"
-	Ω "github.com/onsi/gomega"
-	"github.com/onsi/gomega/types"
+	"github.com/bsm/ginkgo"
+	Ω "github.com/bsm/gomega"
+	"github.com/bsm/gomega/types"
 )
 
 // PublisherInput for the shared test.
