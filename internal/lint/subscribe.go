@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/bsm/bps"
-	"github.com/onsi/ginkgo"
-	Ω "github.com/onsi/gomega"
+	"github.com/bsm/ginkgo"
+	Ω "github.com/bsm/gomega"
 )
 
 // SubscriberInput for the shared test.

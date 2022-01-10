@@ -12,8 +12,8 @@ import (
 	"github.com/bsm/bps/internal/lint"
 	"github.com/bsm/bps/kafka"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	. "github.com/bsm/ginkgo"
+	. "github.com/bsm/gomega"
 )
 
 var brokerAddrs = []string{"127.0.0.1:9092", "127.0.0.1:9093", "127.0.0.1:9094"}

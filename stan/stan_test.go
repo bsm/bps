@@ -15,8 +15,8 @@ import (
 	"github.com/bsm/bps/internal/lint"
 	"github.com/nats-io/stan.go"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	. "github.com/bsm/ginkgo"
+	. "github.com/bsm/gomega"
 )
 
 var _ = Describe("Publisher", func() {
