@@ -19,4 +19,5 @@ Gem::Specification.new do |s|
 
   s.add_dependency 'bps', s.version
   s.add_dependency 'nats-pure', '~> 0.6.2'
+  s.metadata['rubygems_mfa_required'] = 'true'
 end

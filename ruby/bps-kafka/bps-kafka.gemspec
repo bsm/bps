@@ -19,4 +19,5 @@ Gem::Specification.new do |s|
 
   s.add_dependency 'bps', s.version
   s.add_dependency 'ruby-kafka', '>= 1.1.0.beta1'
+  s.metadata['rubygems_mfa_required'] = 'true'
 end

@@ -19,4 +19,5 @@ Gem::Specification.new do |s|
 
   s.add_dependency 'bps', s.version
   s.add_dependency 'nats-streaming', '~> 0.2.2'
+  s.metadata['rubygems_mfa_required'] = 'true'
 end
