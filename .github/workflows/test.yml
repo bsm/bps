@@ -48,3 +48,12 @@ jobs:
       - run: make test
       - run: docker-compose -f testdata/docker-compose.yml down
         if: always()
+  golangci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Run lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: latest
