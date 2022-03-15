@@ -15,7 +15,7 @@ Gem::Specification.new do |s|
   s.files         = `git ls-files`.split("\n")
   s.test_files    = `git ls-files -- spec/*`.split("\n")
   s.require_paths = ['lib']
-  s.required_ruby_version = '>= 2.6.0'
+  s.required_ruby_version = '>= 2.7'
 
   s.add_dependency 'bps', s.version
   s.add_dependency 'nats-pure', '~> 0.6.2'
