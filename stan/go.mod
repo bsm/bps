@@ -2,13 +2,11 @@ module github.com/bsm/bps/stan
 
 go 1.17
 
-replace github.com/bsm/bps => ../
-
 require (
-	github.com/bsm/bps v0.0.0-00010101000000-000000000000
+	github.com/bsm/bps v0.2.4
 	github.com/bsm/ginkgo v1.16.5
 	github.com/bsm/gomega v1.17.0
-	github.com/nats-io/nats.go v1.13.1-0.20220308171302-2f2f6968e98d
+	github.com/nats-io/nats.go v1.16.0
 	github.com/nats-io/stan.go v0.10.2
 )
 
@@ -20,6 +18,6 @@ require (
 	github.com/nats-io/nats-streaming-server v0.24.3 // indirect
 	github.com/nats-io/nkeys v0.3.0 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
-	golang.org/x/crypto v0.0.0-20220307211146-efcb8507fb70 // indirect
+	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 )
