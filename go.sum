@@ -2,5 +2,7 @@ github.com/bsm/ginkgo v1.16.5 h1:uTeeWv0Yx1PnDeCk76PFyGrOMVw3D+r9bTNKNcIjDdQ=
 github.com/bsm/ginkgo v1.16.5/go.mod h1:RabIZLzOCPghgHJKUqHZpqrQETA5AnF4aCSIYy5C1bk=
 github.com/bsm/gomega v1.17.0 h1:Sd6EsHO5d0DU6d41dtx9cK3T7Vjsr89o6zyIVWgi0CI=
 github.com/bsm/gomega v1.17.0/go.mod h1:JifAceMQ4crZIWYUKrlGcmbN3bqHogVTADMD2ATsbwk=
+github.com/bsm/gomega v1.18.1 h1:p9jcHR6SQ6pUMt6EptN79kZqzRd/ps6BgNximHW6tdE=
+github.com/bsm/gomega v1.18.1/go.mod h1:JifAceMQ4crZIWYUKrlGcmbN3bqHogVTADMD2ATsbwk=
 github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
 github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=

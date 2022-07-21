@@ -1,3 +1,5 @@
+github.com/bsm/bps v0.2.4 h1:R1kAPDfJb3uiG6atKFbHKySRQtWUr3Ed3EYfZktQ3U0=
+github.com/bsm/bps v0.2.4/go.mod h1:PMh13JPIGvjgnVixI6G85dCAkR4O9/NkTcW1iqPGKRM=
 github.com/bsm/ginkgo v1.16.5 h1:uTeeWv0Yx1PnDeCk76PFyGrOMVw3D+r9bTNKNcIjDdQ=
 github.com/bsm/ginkgo v1.16.5/go.mod h1:RabIZLzOCPghgHJKUqHZpqrQETA5AnF4aCSIYy5C1bk=
 github.com/bsm/gomega v1.17.0 h1:Sd6EsHO5d0DU6d41dtx9cK3T7Vjsr89o6zyIVWgi0CI=
